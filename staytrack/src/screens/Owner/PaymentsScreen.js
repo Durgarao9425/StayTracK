@@ -47,30 +47,35 @@ const PaymentCard = ({ student, onPress }) => {
 };
 
 // 2. Add Payment Drawer (Left Slide) - Refactored to Right Slide for consistency
+// ===============================
+//   ADD PAYMENT DRAWER - FINAL UI
+// ===============================
+
 const AddPaymentDrawer = ({ isVisible, onClose, onSave, student, currentMonth, theme }) => {
-    const slideAnim = useRef(new Animated.Value(width)).current; // Start off-screen RIGHT
+    const slideAnim = useRef(new Animated.Value(width)).current;
     const [amount, setAmount] = useState('');
-    const [method, setMethod] = useState('Cash'); // Cash, UPI, Card
+    const [method, setMethod] = useState('Cash');
     const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
-
     const [shouldRender, setShouldRender] = useState(isVisible);
 
+    // Slide Animation
     useEffect(() => {
         if (isVisible) setShouldRender(true);
+
         Animated.timing(slideAnim, {
             toValue: isVisible ? 0 : width,
-            duration: 300,
+            duration: 280,
             useNativeDriver: true,
         }).start(() => {
             if (!isVisible) setShouldRender(false);
         });
 
-        if (isVisible) {
-            // Pre-fill amount from student rent if available
-            if (student?.rent) setAmount(String(student.rent));
-        } else {
-            // Reset form
+        if (isVisible && student?.rent) {
+            setAmount(String(student.rent));
+        }
+
+        if (!isVisible) {
             setTimeout(() => {
                 setAmount('');
                 setMethod('Cash');
@@ -79,11 +84,12 @@ const AddPaymentDrawer = ({ isVisible, onClose, onSave, student, currentMonth, t
         }
     }, [isVisible, student]);
 
-    if (!shouldRender && !isVisible) return null;
+    // Close rendering
+    if (!shouldRender) return null;
 
     const handleSave = async () => {
         if (!amount) {
-            showToast('Please enter paid amount', 'warning');
+            showToast("Please enter paid amount", "warning");
             return;
         }
 
@@ -98,133 +104,322 @@ const AddPaymentDrawer = ({ isVisible, onClose, onSave, student, currentMonth, t
                 notes,
                 date: new Date().toISOString()
             });
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setSaving(false);
+        } catch (e) {
+            console.error(e);
         }
+        setSaving(false);
     };
 
-    if (!isVisible && !student) return null;
-
     return (
-        <View style={styles.drawerOverlay} pointerEvents={isVisible ? "auto" : "none"}>
-            <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-            <Animated.View style={[styles.drawerContainer, { transform: [{ translateX: slideAnim }] }]}>
-                <View style={{ flex: 1 }}>
-                    <View style={styles.drawerHeader}>
-                        <Text style={styles.drawerTitle}>Record Payment</Text>
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Ionicons name="close" size={24} color={COLORS.gray800} />
-                        </TouchableOpacity>
+        <View style={drawerStyles.overlay}>
+
+            {/* Fade Background */}
+            <TouchableOpacity style={drawerStyles.backdrop} onPress={onClose} activeOpacity={1} />
+
+            {/* Drawer Container */}
+            <Animated.View style={[drawerStyles.container, { transform: [{ translateX: slideAnim }] }]}>
+
+                {/* Header */}
+                <View style={drawerStyles.header}>
+                    <Text style={drawerStyles.headerTitle}>Record Payment</Text>
+
+                    <TouchableOpacity style={drawerStyles.closeBtn} onPress={onClose}>
+                        <Ionicons name="close" size={24} color="#111827" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Scrollable Form */}
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 120 }}
+                >
+                    {/* ------- STUDENT INFO CARD ------- */}
+                    <View style={drawerStyles.infoCard}>
+                        <Text style={drawerStyles.infoLabel}>STUDENT</Text>
+                        <Text style={drawerStyles.infoValue}>{student?.name}</Text>
+
+                        <View style={drawerStyles.infoRow}>
+                            <View>
+                                <Text style={drawerStyles.infoLabel}>RENT</Text>
+                                <Text style={drawerStyles.infoValueSm}>₹{student?.rent || 0}</Text>
+                            </View>
+
+                            <View>
+                                <Text style={drawerStyles.infoLabel}>MONTH</Text>
+                                <Text style={drawerStyles.infoValueSm}>{currentMonth}</Text>
+                            </View>
+                        </View>
                     </View>
 
-                    <ScrollView
-                        contentContainerStyle={styles.drawerContent}
-                        showsVerticalScrollIndicator={false}
-                        bounces={false}
-                        overScrollMode="never"
+                    {/* -------- PAID AMOUNT -------- */}
+                    <View style={drawerStyles.formBlock}>
+                        <Text style={drawerStyles.label}>
+                            Paid Amount <Text style={{ color: 'red' }}>*</Text>
+                        </Text>
+
+                        <View style={drawerStyles.amountBox}>
+                            <Text style={drawerStyles.amountSymbol}>₹</Text>
+                            <TextInput
+                                style={drawerStyles.amountInput}
+                                keyboardType="numeric"
+                                value={amount}
+                                onChangeText={setAmount}
+                                placeholder="0"
+                                placeholderTextColor="#9ca3af"
+                            />
+                        </View>
+                    </View>
+
+                    {/* -------- PAYMENT METHOD -------- */}
+                    <View style={drawerStyles.formBlock}>
+                        <Text style={drawerStyles.label}>Payment Method</Text>
+
+                        <View style={drawerStyles.methodRow}>
+                            {["Cash", "UPI", "OS"].map((m) => (
+                                <TouchableOpacity
+                                    key={m}
+                                    onPress={() => setMethod(m)}
+                                    style={[
+                                        drawerStyles.methodBtn,
+                                        method === m && {
+                                            backgroundColor: theme.primary,
+                                            borderColor: theme.primary,
+                                        },
+                                    ]}
+                                >
+                                    <Text style={[
+                                        drawerStyles.methodText,
+                                        method === m && { color: "white" }
+                                    ]}>
+                                        {m}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* -------- NOTES -------- */}
+                    <View style={drawerStyles.formBlock}>
+                        <Text style={drawerStyles.label}>Notes (Optional)</Text>
+
+                        <TextInput
+                            multiline
+                            numberOfLines={4}
+                            placeholder="Add any remarks..."
+                            value={notes}
+                            onChangeText={setNotes}
+                            textAlignVertical="top"
+                            placeholderTextColor="#9CA3AF"
+                            style={drawerStyles.notesInput}
+                        />
+                    </View>
+                </ScrollView>
+
+                {/* -------- SAVE BUTTON -------- */}
+                <View style={drawerStyles.footer}>
+                    <TouchableOpacity
+                        onPress={handleSave}
+                        disabled={saving}
+                        style={[drawerStyles.saveBtn, { backgroundColor: theme.primary }]}
                     >
-                        {/* Read-Only Info */}
-                        <View style={styles.infoCard}>
-                            <Text style={styles.infoCardLabel}>Student</Text>
-                            <Text style={styles.infoCardValue}>{student?.name}</Text>
-
-                            <View style={styles.infoRow}>
-                                <View>
-                                    <Text style={styles.infoCardLabel}>Rent</Text>
-                                    <Text style={styles.infoCardSubValue}>₹{student?.rent || 0}</Text>
-                                </View>
-                                <View>
-                                    <Text style={styles.infoCardLabel}>Month</Text>
-                                    <Text style={styles.infoCardSubValue}>{currentMonth}</Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        {/* Payment Form */}
-                        <View style={styles.formSection}>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Paid Amount <Text style={styles.required}>*</Text></Text>
-                                <View style={styles.currencyInputContainer}>
-                                    <Text style={styles.currencySymbol}>₹</Text>
-                                    <TextInput
-                                        style={[styles.currencyInput, Platform.OS === 'web' && { outlineStyle: 'none' }]}
-                                        keyboardType="numeric"
-                                        value={amount}
-                                        onChangeText={setAmount}
-                                        placeholder="0.00"
-                                    />
-                                </View>
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Payment Method</Text>
-                                <View style={styles.methodRow}>
-                                    {['Cash', 'UPI', 'OS'].map((m) => (
-                                        <TouchableOpacity
-                                            key={m}
-                                            onPress={() => setMethod(m)}
-                                            style={[
-                                                styles.methodButton,
-                                                method === m ? { backgroundColor: theme.primary, borderColor: theme.primary } : {}
-                                            ]}
-                                        >
-                                            <Text style={[
-                                                styles.methodText,
-                                                method === m ? { color: COLORS.white } : {}
-                                            ]}>{m}</Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Notes (Optional)</Text>
-                                <TextInput
-                                    style={[styles.textArea, Platform.OS === 'web' && { outlineStyle: 'none' }]}
-                                    multiline
-                                    textAlignVertical="top"
-                                    placeholder="Add any remarks..."
-                                    value={notes}
-                                    onChangeText={setNotes}
-                                />
-                            </View>
-                        </View>
-                    </ScrollView>
-
-                    <View style={styles.drawerFooter}>
-                        <TouchableOpacity
-                            style={[styles.saveButton, { backgroundColor: theme.primary }]}
-                            onPress={handleSave}
-                            disabled={saving}
-                        >
-                            {saving ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <Text style={styles.saveButtonText}>Save Payment</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                        {saving ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={drawerStyles.saveText}>Save Payment</Text>
+                        )}
+                    </TouchableOpacity>
                 </View>
             </Animated.View>
         </View>
     );
 };
 
+// ===============================
+//        DRAWER STYLES
+// ===============================
+
+const drawerStyles = StyleSheet.create({
+    overlay: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 50,
+    },
+    backdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    container: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: width > 540 ? 420 : width * 0.88,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 24,
+        borderBottomLeftRadius: 24,
+        paddingBottom: 20,
+    },
+
+    // HEADER
+    header: {
+        padding: 20,
+        borderBottomWidth: 1,
+        borderColor: '#F3F4F6',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    headerTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#111827',
+    },
+    closeBtn: {
+        padding: 6,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 20,
+    },
+
+    // INFO CARD
+    infoCard: {
+        backgroundColor: '#EEF6FF',
+        margin: 20,
+        padding: 18,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#D0E3FF',
+    },
+    infoLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#1E40AF',
+        marginBottom: 4,
+    },
+    infoValue: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#111827',
+        marginBottom: 14,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    infoValueSm: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#111827'
+    },
+
+    // FORM BLOCKS
+    formBlock: {
+        marginHorizontal: 20,
+        marginBottom: 22,
+    },
+    label: {
+        fontSize: 15,
+        color: '#374151',
+        fontWeight: '700',
+        marginBottom: 8,
+    },
+
+    // AMOUNT FIELD
+    amountBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 16,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    amountSymbol: {
+        fontSize: 22,
+        color: '#6B7280',
+        fontWeight: '700',
+        marginRight: 6,
+    },
+    amountInput: {
+        flex: 1,
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#111827',
+    },
+
+    // METHOD BUTTONS
+    methodRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    methodBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        backgroundColor: 'white',
+        alignItems: 'center',
+        marginHorizontal: 4,
+    },
+    methodText: {
+        fontWeight: '700',
+        fontSize: 14,
+        color: '#374151',
+    },
+
+    // NOTES
+    notesInput: {
+        backgroundColor: '#F3F4F6',
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        height: 110,
+        fontSize: 15,
+        color: '#374151',
+    },
+
+    // FOOTER
+    footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        width: '100%',
+        padding: 20,
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    saveBtn: {
+        paddingVertical: 16,
+        borderRadius: 16,
+        alignItems: 'center',
+    },
+    saveText: {
+        fontSize: 16,
+        color: '#fff',
+        fontWeight: '800',
+    },
+});
+
 // 3. Payment Details Drawer (Bottom Slide)
 const PaymentDetailsDrawer = ({ isVisible, onClose, payment, student, onDelete, theme }) => {
     const slideAnim = useRef(new Animated.Value(height)).current;
+    const [shouldRender, setShouldRender] = useState(isVisible);
 
     useEffect(() => {
+        if (isVisible) setShouldRender(true);
         Animated.timing(slideAnim, {
             toValue: isVisible ? 0 : height,
             duration: 300,
             useNativeDriver: true,
-        }).start();
+        }).start(() => {
+            if (!isVisible) setShouldRender(false);
+        });
     }, [isVisible]);
 
-    if (!isVisible && !payment) return null;
+    if (!shouldRender && !isVisible) return null;
 
     return (
         <View style={styles.drawerOverlay} pointerEvents={isVisible ? "auto" : "none"}>
@@ -493,7 +688,7 @@ export default function Payments({ navigation }) {
 
             <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
                 {/* Header */}
-                <View className="px-6 pt-2 pb-6 z-10 w-full">
+                <View className="px-6 pt-6 pb-6 z-10 w-full">
                     <View className="flex-row justify-between items-center mb-6">
                         <View className="flex-row items-center">
                             <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
@@ -506,7 +701,7 @@ export default function Payments({ navigation }) {
 
                     {/* Search Bar */}
                     <View className="bg-white rounded-2xl flex-row items-center px-4 py-3 shadow-lg shadow-teal-900/10 mb-4">
-                        <Ionicons name="search" size={20} color="#9ca3af" />
+                        <Ionicons name="search" size={20} color="#6b7280" />
                         <TextInput
                             placeholder="Search students..."
                             placeholderTextColor="#9ca3af"
@@ -584,7 +779,10 @@ export default function Payments({ navigation }) {
             {/* Drawers */}
             <AddPaymentDrawer
                 isVisible={isAddDrawerOpen}
-                onClose={() => setAddDrawerOpen(false)}
+                onClose={() => {
+                    setAddDrawerOpen(false);
+                    setSelectedStudent(null);
+                }}
                 onSave={onSavePayment}
                 student={selectedStudent}
                 currentMonth={currentMonth}
@@ -593,7 +791,11 @@ export default function Payments({ navigation }) {
 
             <PaymentDetailsDrawer
                 isVisible={isDetailsDrawerOpen}
-                onClose={() => setDetailsDrawerOpen(false)}
+                onClose={() => {
+                    setDetailsDrawerOpen(false);
+                    setSelectedPayment(null);
+                    setSelectedStudent(null);
+                }}
                 payment={selectedPayment}
                 student={selectedStudent}
                 onDelete={onDeletePayment}

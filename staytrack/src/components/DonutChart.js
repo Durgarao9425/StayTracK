@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, Easing } from 'react-native';
+import { View, Text, Animated, Easing, Platform } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -15,54 +15,60 @@ export default function DonutChart({
     bgColor = '#E5E7EB'
 }) {
     const animatedValue = useRef(new Animated.Value(0)).current;
-    const circleRef = useRef();
-    const halfCircle = radius + strokeWidth;
-    const circleCircumference = 2 * Math.PI * radius;
+
+    // Safety check for radius to avoid division by zero
+    const safeRadius = radius > 0 ? radius : 1;
+    const halfCircle = safeRadius + strokeWidth;
+    const circleCircumference = 2 * Math.PI * safeRadius;
 
     useEffect(() => {
+        // Run animation from 0 to current percentage
         Animated.timing(animatedValue, {
             toValue: percentage,
             duration: 1000,
             delay: 500,
-            useNativeDriver: true,
+            useNativeDriver: false, // SVG props don't support native driver on web/some native versions
             easing: Easing.out(Easing.ease),
         }).start();
     }, [percentage]);
 
+    // Interpolate offset based on animated value
     const strokeDashoffset = animatedValue.interpolate({
         inputRange: [0, max],
         outputRange: [circleCircumference, 0],
-        extrapolate: 'clamp',
     });
 
     return (
-        <View className="items-center justify-center">
-            <View style={{ width: radius * 2 + strokeWidth * 2, height: radius * 2 + strokeWidth * 2 }}>
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{
+                width: halfCircle * 2,
+                height: halfCircle * 2,
+                position: 'relative',
+            }}>
                 <Svg
-                    height={radius * 2 + strokeWidth * 2}
-                    width={radius * 2 + strokeWidth * 2}
+                    height={halfCircle * 2}
+                    width={halfCircle * 2}
                     viewBox={`0 0 ${halfCircle * 2} ${halfCircle * 2}`}
                 >
-                    <G rotation="-90" origin={`${halfCircle}, ${halfCircle}`}>
+                    <G transform={`rotate(-90 ${halfCircle} ${halfCircle})`}>
                         {/* Background Circle */}
                         <Circle
-                            cx="50%"
-                            cy="50%"
-                            r={radius}
+                            cx={halfCircle}
+                            cy={halfCircle}
+                            r={safeRadius}
                             stroke={bgColor}
                             strokeWidth={strokeWidth}
-                            fill="transparent"
+                            fill="none"
                         />
-                        {/* Foreground Circle */}
+                        {/* Animated Progress Circle */}
                         <AnimatedCircle
-                            ref={circleRef}
-                            cx="50%"
-                            cy="50%"
-                            r={radius}
+                            cx={halfCircle}
+                            cy={halfCircle}
+                            r={safeRadius}
                             stroke={color}
                             strokeWidth={strokeWidth}
                             strokeLinecap="round"
-                            fill="transparent"
+                            fill="none"
                             strokeDasharray={circleCircumference}
                             strokeDashoffset={strokeDashoffset}
                         />
@@ -70,12 +76,29 @@ export default function DonutChart({
                 </Svg>
 
                 {/* Center Text Overlay */}
-                <View className="absolute inset-0 items-center justify-center">
-                    <Text className="text-gray-900 font-bold text-lg">
-                        {centerValue !== undefined ? centerValue : `${percentage}%`}
+                <View style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <Text style={{
+                        color: '#111827',
+                        fontWeight: 'bold',
+                        fontSize: radius > 30 ? 18 : 14,
+                    }}>
+                        {centerValue !== undefined ? centerValue : `${Math.round(percentage)}%`}
                     </Text>
                     {centerLabel && (
-                        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-tighter">
+                        <Text style={{
+                            color: '#9CA3AF',
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase',
+                        }}>
                             {centerLabel}
                         </Text>
                     )}

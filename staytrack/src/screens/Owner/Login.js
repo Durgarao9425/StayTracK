@@ -68,11 +68,12 @@ export default function Login({ navigation }) {
             const msg = {
                 "auth/user-not-found": "❌ No account found with this email.",
                 "auth/wrong-password": "❌ Incorrect password.",
+                "auth/invalid-credential": "❌ Invalid email or password.",
                 "auth/invalid-email": "❌ Invalid email format.",
                 "auth/user-disabled": "❌ This account has been disabled.",
                 "auth/too-many-requests": "⚠️ Too many attempts. Try again later.",
                 "auth/network-request-failed": "⚠️ Network error. Check connection.",
-            }[error.code] || "❌ Login failed. Please try again.";
+            }[error.code] || `❌ Login failed: ${error.message}`;
 
             showToast(msg, "error");
         } finally {

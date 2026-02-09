@@ -1,7 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Animated, Dimensions, Image, Alert, Platform, Linking, SafeAreaView, StyleSheet } from 'react-native';
+import {
+    View,
+    Text,
+    ScrollView,
+    TouchableOpacity,
+    TextInput,
+    Animated,
+    Dimensions,
+    Image,
+    Alert,
+    Platform,
+    Linking,
+    SafeAreaView,
+    StyleSheet
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, setDoc, doc, getDocs, query, where } from 'firebase/firestore';
+import {
+    collection,
+    setDoc,
+    updateDoc,
+    doc,
+    getDocs,
+    query,
+    where
+} from 'firebase/firestore';
 import { db, auth } from '../../config/firebase';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadFile } from '../../services/storage';
@@ -9,80 +31,83 @@ import { useTheme } from '../../context/ThemeContext';
 import ProfileHeader from '../../components/ProfileHeader';
 import showToast from '../../utils/toast';
 import StayLoader from '../../components/StayLoader';
-import { ScreenWrapper } from '../../components';
-import { COLORS, FONTS, SPACING, SHADOWS, RADII } from '../../theme/theme';
+import { COLORS, SHADOWS } from '../../theme/theme';
 
 const { height, width } = Dimensions.get('window');
 
 // Student Card Component
 const StudentItem = ({ student, onDetails, onEdit, onToggleStatus, theme, togglingIds }) => {
     const isToggling = togglingIds.includes(student.id);
+    const statusColor = student.status === "Inactive"
+        ? { bg: "#FEE2E2", text: "#DC2626" }
+        : { bg: "#D1FAE5", text: "#059669" };
 
     return (
         <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => onDetails(student)}
-            className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100"
+            style={styles.studentCard}
         >
-            <View className="flex-row items-center mb-3">
-                <View className={`w-12 h-12 rounded-xl justify-center items-center mr-3`} style={{ backgroundColor: `${theme.primary}20` }}>
+            <View style={styles.studentCardHeader}>
+                <View style={[styles.studentAvatar, { backgroundColor: `${theme.primary}10` }]}>
                     {student.profileImage ? (
-                        <Image source={{ uri: student.profileImage }} className="w-full h-full rounded-xl" />
+                        <Image source={{ uri: student.profileImage }} style={styles.studentAvatarImage} />
                     ) : (
-                        <Text className="text-lg font-bold" style={{ color: theme.primary }}>
+                        <Text style={[styles.studentAvatarText, { color: theme.primary }]}>
                             {student.name?.charAt(0) || 'S'}
                         </Text>
                     )}
                 </View>
-                <View className="flex-1">
-                    <Text className="text-lg font-bold text-gray-900" numberOfLines={1}>{student.name}</Text>
-                    <Text className="text-gray-500 text-xs font-medium">{student.room} • Bed {student.bed || '-'}</Text>
+                <View style={styles.studentInfo}>
+                    <Text style={styles.studentName} numberOfLines={1}>{student.name}</Text>
+                    <Text style={styles.studentRoom}>Room {student.room} • Bed {student.bed || '-'}</Text>
+                    <Text style={[styles.studentRent, { color: theme.primary }]}>₹{student.rent}/month</Text>
                 </View>
-                <View className={`px-2 py-1 rounded-md ${student.status === 'Inactive' ? 'bg-red-100' : 'bg-green-100'}`}>
-                    <Text className={`text-[10px] font-bold ${student.status === 'Inactive' ? 'text-red-700' : 'text-green-700'}`}>
-                        {student.status || 'ACTIVE'}
+                <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
+                    <Text style={[styles.statusText, { color: statusColor.text }]}>
+                        {(student.status || 'ACTIVE').toUpperCase()}
                     </Text>
                 </View>
             </View>
 
-            <View className="flex-row border-t border-gray-50 pt-3 justify-between">
+            <View style={styles.studentActions}>
                 <TouchableOpacity
-                    className="flex-1 flex-row items-center justify-center py-2 bg-blue-50 rounded-lg mr-2"
+                    style={styles.actionButtonCall}
                     onPress={() => Linking.openURL(`tel:${student.phone}`)}
                 >
-                    <Ionicons name="call" size={16} color="#2563eb" />
-                    <Text className="ml-2 text-blue-700 font-bold text-xs">Call</Text>
+                    <Ionicons name="call" size={18} color="#2563eb" />
+                    <Text style={styles.actionButtonCallText}>Call</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    className="flex-1 flex-row items-center justify-center py-2 bg-gray-100 rounded-lg mr-2"
-                    onPress={(e) => {
-                        e.stopPropagation(); // Prevent opening details
-                        onEdit(student);
-                    }}
+                    style={styles.actionButtonEdit}
+                    onPress={() => onEdit(student)}
                 >
-                    <Ionicons name="create" size={16} color="#4b5563" />
-                    <Text className="ml-2 text-gray-700 font-bold text-xs">Edit</Text>
+                    <Ionicons name="create-outline" size={18} color="#4b5563" />
+                    <Text style={styles.actionButtonEditText}>Edit</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    className={`flex-1 flex-row items-center justify-center py-2 rounded-lg ${student.status === 'Inactive' ? 'bg-green-50' : 'bg-red-50'}`}
-                    onPress={(e) => {
-                        e.stopPropagation(); // Prevent opening details
-                        onToggleStatus(student);
-                    }}
+                    style={[
+                        styles.actionButtonToggle,
+                        student.status === 'Inactive' ? styles.actionButtonActivate : styles.actionButtonBlock
+                    ]}
+                    onPress={() => onToggleStatus(student)}
                     disabled={isToggling}
                 >
                     {isToggling ? (
-                        <StayLoader size="small" color={student.status === 'Inactive' ? "green" : "red"} />
+                        <StayLoader size="small" color={student.status === 'Inactive' ? "#059669" : "#DC2626"} />
                     ) : (
                         <>
                             <Ionicons
                                 name={student.status === 'Inactive' ? "checkmark-circle" : "ban-outline"}
-                                size={16}
-                                color={student.status === 'Inactive' ? "#16a34a" : "#dc2626"}
+                                size={18}
+                                color={student.status === 'Inactive' ? "#059669" : "#DC2626"}
                             />
-                            <Text className={`ml-2 font-bold text-xs ${student.status === 'Inactive' ? 'text-green-700' : 'text-red-700'}`}>
+                            <Text style={[
+                                styles.actionButtonToggleText,
+                                { color: student.status === 'Inactive' ? "#059669" : "#DC2626" }
+                            ]}>
                                 {student.status === 'Inactive' ? 'Activate' : 'Block'}
                             </Text>
                         </>
@@ -93,25 +118,41 @@ const StudentItem = ({ student, onDetails, onEdit, onToggleStatus, theme, toggli
     );
 };
 
-// AddDrawer Modal Component
+// AddDrawer Modal Component (REFRACTORED TO BOTTOM SHEET AS REQUESTED)
 const AddDrawer = ({ isVisible, onClose, onSave, theme, initialData, rooms, loadingRooms }) => {
-    const slideAnim = useRef(new Animated.Value(width)).current;
+    const slideAnim = useRef(new Animated.Value(height)).current;
 
-    // Form State
-    const [formData, setFormData] = useState({ name: '', phone: '', parentPhone: '', adhaar: '', room: '', bed: '', rent: '' });
+    const [formData, setFormData] = useState({
+        name: '',
+        phone: '',
+        parentPhone: '',
+        adhaar: '',
+        room: '',
+        bed: '',
+        rent: ''
+    });
     const [images, setImages] = useState({ profile: null, aadharFront: null, aadharBack: null });
     const [saving, setSaving] = useState(false);
+    const [showDrawer, setShowDrawer] = useState(false);
 
     useEffect(() => {
-        Animated.timing(slideAnim, {
-            toValue: isVisible ? 0 : width,
-            duration: 300,
-            useNativeDriver: true,
-        }).start();
+        if (isVisible) {
+            setShowDrawer(true);
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            Animated.timing(slideAnim, {
+                toValue: height,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => setShowDrawer(false));
+        }
 
         if (isVisible) {
             if (initialData) {
-                // Populate form for editing
                 setFormData({
                     name: initialData.name || '',
                     phone: initialData.phone || '',
@@ -119,7 +160,7 @@ const AddDrawer = ({ isVisible, onClose, onSave, theme, initialData, rooms, load
                     adhaar: initialData.adhaar || '',
                     room: initialData.room || '',
                     bed: initialData.bed || '',
-                    rent: initialData.rent || '',
+                    rent: initialData.rent?.toString() || '',
                 });
                 setImages({
                     profile: initialData.profileImage || null,
@@ -127,262 +168,228 @@ const AddDrawer = ({ isVisible, onClose, onSave, theme, initialData, rooms, load
                     aadharBack: initialData.aadharBackImage || null,
                 });
             } else {
-                // Reset for add
-                setFormData({ name: '', phone: '', parentPhone: '', adhaar: '', room: '', bed: '', rent: '' });
-                setImages({ profile: null, aadharFront: null, aadharBack: null });
+                handleReset();
             }
         }
     }, [isVisible, initialData]);
-
-    const pickImage = async (type) => {
-        const uploadFromCamera = async () => {
-            try {
-                let result = await ImagePicker.launchCameraAsync({
-                    allowsEditing: true,
-                    aspect: type === 'profile' ? [1, 1] : [4, 3],
-                    quality: 0.5,
-                });
-                if (!result.canceled) setImages(prev => ({ ...prev, [type]: result.assets[0].uri }));
-            } catch (e) {
-                showToast("Camera error", 'error');
-            }
-        };
-
-        const uploadFromGallery = async () => {
-            try {
-                let result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                    allowsEditing: true,
-                    aspect: type === 'profile' ? [1, 1] : [4, 3],
-                    quality: 0.5,
-                });
-                if (!result.canceled) setImages(prev => ({ ...prev, [type]: result.assets[0].uri }));
-            } catch (e) {
-                console.error(e);
-            }
-        };
-
-        if (Platform.OS === 'web') {
-            uploadFromGallery();
-        } else {
-            Alert.alert("Upload Image", "Choose an option", [
-                { text: "Camera", onPress: uploadFromCamera },
-                { text: "Gallery", onPress: uploadFromGallery },
-                { text: "Cancel", style: "cancel" }
-            ]);
-        }
-    };
 
     const handleReset = () => {
         setFormData({ name: '', phone: '', parentPhone: '', adhaar: '', room: '', bed: '', rent: '' });
         setImages({ profile: null, aadharFront: null, aadharBack: null });
     };
 
+    const pickImage = async (type) => {
+        Alert.alert(
+            "Upload Image",
+            "Choose source",
+            [
+                {
+                    text: "Camera",
+                    onPress: async () => {
+                        let res = await ImagePicker.launchCameraAsync({
+                            allowsEditing: true,
+                            aspect: type === 'profile' ? [1, 1] : [4, 3],
+                            quality: 0.5,
+                        });
+                        if (!res.canceled) setImages(prev => ({ ...prev, [type]: res.assets[0].uri }));
+                    }
+                },
+                {
+                    text: "Gallery",
+                    onPress: async () => {
+                        let res = await ImagePicker.launchImageLibraryAsync({
+                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                            allowsEditing: true,
+                            aspect: type === 'profile' ? [1, 1] : [4, 3],
+                            quality: 0.5,
+                        });
+                        if (!res.canceled) setImages(prev => ({ ...prev, [type]: res.assets[0].uri }));
+                    }
+                },
+                { text: "Cancel", style: "cancel" }
+            ]
+        );
+    };
+
     const handleSave = async () => {
-        if (!formData.name || !formData.phone || !formData.room || !formData.adhaar) {
-            showToast('Please fill in Name, Phone, Adhaar, and Room', 'warning');
-            return;
-        }
-        if (!/^[0-9]{10}$/.test(formData.phone)) {
-            showToast('Mobile Number must be 10 digits', 'warning');
-            return;
-        }
-        if (!/^[0-9]{12}$/.test(formData.adhaar)) {
-            showToast('Adhaar Number must be 12 digits', 'warning');
-            return;
-        }
-        // Minimal image validation to allow faster entry if needed, but keeping original logic:
-        if (!images.profile || !images.aadharFront || !images.aadharBack) {
-            showToast('Please upload all required images', 'warning');
+        if (!formData.name || !formData.phone || !formData.room || !formData.rent) {
+            showToast('Please fill in required fields', 'warning');
             return;
         }
 
         setSaving(true);
         try {
             await onSave(formData, images);
+            onClose();
+        } catch (error) {
+            console.error(error);
+            showToast('Error saving student', 'error');
         } finally {
             setSaving(false);
         }
     };
 
-    if (!isVisible) return null;
+    if (!showDrawer && !isVisible) return null;
 
     return (
         <View style={styles.drawerOverlay} pointerEvents={isVisible ? "auto" : "none"}>
-            <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-            <Animated.View style={[styles.drawerContainer, { transform: [{ translateX: slideAnim }] }]}>
-                <SafeAreaView style={{ flex: 1 }}>
-                    <View style={styles.drawerContent}>
-                        {/* Header */}
-                        <View style={styles.drawerHeader}>
-                            <Text style={styles.drawerTitle}>Add Student</Text>
-                            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                                <Ionicons name="close" size={24} color={COLORS.gray800} />
-                            </TouchableOpacity>
-                        </View>
+            <TouchableOpacity
+                style={styles.backdrop}
+                activeOpacity={1}
+                onPress={onClose}
+            />
+            <Animated.View style={[styles.bottomSheetContainer, { transform: [{ translateY: slideAnim }] }]}>
+                <View style={styles.drawerHeader}>
+                    <Text style={styles.drawerTitle}>{initialData ? 'Edit Student' : 'Add Student'}</Text>
+                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                        <Ionicons name="close" size={24} color="#1E293B" />
+                    </TouchableOpacity>
+                </View>
 
-                        {/* Content */}
-
-                        <ScrollView
-                            style={{ flex: 1 }}
-                            contentContainerStyle={[styles.formContainer, { paddingBottom: 180 }]}
-                            showsVerticalScrollIndicator={false}
-                        >
-                            {/* Profile Image */}
-                            <View style={styles.profileUploadContainer}>
-                                <TouchableOpacity onPress={() => pickImage('profile')} style={styles.profileUploadBtn}>
-                                    {images.profile ? (
-                                        <Image source={{ uri: images.profile }} style={styles.profilePreview} />
-                                    ) : (
-                                        <View style={styles.profilePlaceholder}>
-                                            <Ionicons name="camera" size={32} color={COLORS.gray400} />
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                                <Text style={styles.uploadLabel}>Upload Profile Photo</Text>
-                            </View>
-
-                            {/* Text Inputs */}
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Full Name <Text style={styles.required}>*</Text></Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Enter student name"
-                                    value={formData.name}
-                                    onChangeText={t => setFormData({ ...formData, name: t })}
-                                />
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Mobile Number <Text style={styles.required}>*</Text></Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="10-digit number"
-                                    keyboardType="numeric"
-                                    maxLength={10}
-                                    value={formData.phone}
-                                    onChangeText={t => setFormData({ ...formData, phone: t.replace(/[^0-9]/g, '') })}
-                                />
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Select Room <Text style={styles.required}>*</Text></Text>
-                                {loadingRooms ? (
-                                    <View className="py-2 flex-row items-center">
-                                        <StayLoader size="small" />
-                                        <Text className="ml-2 text-gray-400 text-xs">Fetching rooms...</Text>
-                                    </View>
-                                ) : rooms.length === 0 ? (
-                                    <View className="p-3 bg-red-50 rounded-xl border border-red-100">
-                                        <Text className="text-red-500 font-bold text-xs text-center">No rooms available. Please add rooms in the Rooms page first.</Text>
-                                    </View>
-                                ) : (
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
-                                        {rooms.map(room => (
-                                            <TouchableOpacity
-                                                key={room.id}
-                                                onPress={() => setFormData({ ...formData, room: room.number })}
-                                                style={[
-                                                    styles.hostelChip,
-                                                    formData.room === room.number && { backgroundColor: theme.primary, borderColor: theme.primary }
-                                                ]}
-                                            >
-                                                <Text style={[
-                                                    styles.hostelChipText,
-                                                    formData.room === room.number && { color: COLORS.white }
-                                                ]}>{room.number}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </ScrollView>
-                                )}
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Bed No.</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="e.g. 1"
-                                    value={formData.bed}
-                                    onChangeText={t => setFormData({ ...formData, bed: t })}
-                                />
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Monthly Rent (₹)</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="5000"
-                                    keyboardType="numeric"
-                                    value={formData.rent}
-                                    onChangeText={t => setFormData({ ...formData, rent: t })}
-                                />
-                            </View>
-
-                            {/* ID Proof */}
-                            <View style={styles.idProofSection}>
-                                <Text style={styles.sectionTitle}>Identity Verification</Text>
-                                <TextInput
-                                    style={[styles.input, { backgroundColor: COLORS.white, marginBottom: SPACING.m }]}
-                                    placeholder="Adhaar Number (12 Digits)"
-                                    keyboardType="numeric"
-                                    maxLength={12}
-                                    value={formData.adhaar}
-                                    onChangeText={t => setFormData({ ...formData, adhaar: t.replace(/[^0-9]/g, '') })}
-                                />
-
-                                <View style={styles.row}>
-                                    <TouchableOpacity onPress={() => pickImage('aadharFront')} style={styles.idUploadBtn}>
-                                        {images.aadharFront ? (
-                                            <Image source={{ uri: images.aadharFront }} style={styles.idPreview} />
-                                        ) : (
-                                            <View style={styles.idPlaceholder}>
-                                                <Ionicons name="id-card-outline" size={24} color={COLORS.gray400} />
-                                                <Text style={styles.idUploadText}>Front</Text>
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => pickImage('aadharBack')} style={styles.idUploadBtn}>
-                                        {images.aadharBack ? (
-                                            <Image source={{ uri: images.aadharBack }} style={styles.idPreview} />
-                                        ) : (
-                                            <View style={styles.idPlaceholder}>
-                                                <Ionicons name="id-card-outline" size={24} color={COLORS.gray400} />
-                                                <Text style={styles.idUploadText}>Back</Text>
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
+                <ScrollView
+                    contentContainerStyle={styles.formScrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Profile Image */}
+                    <View style={styles.profileUploadContainer}>
+                        <TouchableOpacity onPress={() => pickImage('profile')} style={styles.profileUploadBtn}>
+                            {images.profile ? (
+                                <Image source={{ uri: images.profile }} style={styles.profilePreview} />
+                            ) : (
+                                <View style={styles.profilePlaceholder}>
+                                    <Ionicons name="camera" size={32} color="#94A3B8" />
+                                    <Text style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>Add Photo</Text>
                                 </View>
-                            </View>
-                        </ScrollView>
-
-                        {/* Footer Button */}
-                        <View style={styles.drawerFooter}>
-                            <TouchableOpacity
-                                style={styles.resetButton}
-                                onPress={handleReset}
-                                disabled={saving}
-                            >
-                                <Text style={styles.resetButtonText}>Reset</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.saveButton, { backgroundColor: theme.primary }]}
-                                onPress={handleSave}
-                                disabled={saving}
-                            >
-                                <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Save Student'}</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Full Screen Loader within Drawer */}
-                        {saving && (
-                            <View style={styles.loaderOverlay}>
-                                <StayLoader />
-                                <Text style={styles.loaderText}>Creating Student Profile...</Text>
-                            </View>
-                        )}
+                            )}
+                        </TouchableOpacity>
                     </View>
-                </SafeAreaView>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Full Name <Text style={{ color: 'red' }}>*</Text></Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Student's Name"
+                            value={formData.name}
+                            onChangeText={t => setFormData({ ...formData, name: t })}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Mobile Number <Text style={{ color: 'red' }}>*</Text></Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Student's Phone"
+                            keyboardType="phone-pad"
+                            maxLength={10}
+                            value={formData.phone}
+                            onChangeText={t => setFormData({ ...formData, phone: t.replace(/[^0-9]/g, '') })}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Select Room <Text style={{ color: 'red' }}>*</Text></Text>
+                        {loadingRooms ? (
+                            <View style={{ paddingVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
+                                <StayLoader size="small" />
+                                <Text style={{ marginLeft: 10, color: COLORS.gray500 }}>Fetching rooms...</Text>
+                            </View>
+                        ) : rooms.length === 0 ? (
+                            <Text style={{ color: COLORS.error, fontSize: 12 }}>No rooms available. Add rooms first.</Text>
+                        ) : (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                                {rooms.map(room => (
+                                    <TouchableOpacity
+                                        key={room.id}
+                                        onPress={() => setFormData({ ...formData, room: room.number, rent: room.rent?.toString() || formData.rent })}
+                                        style={[
+                                            styles.roomChip,
+                                            formData.room === room.number && { backgroundColor: theme.primary, borderColor: theme.primary }
+                                        ]}
+                                    >
+                                        <Text style={[
+                                            styles.roomChipText,
+                                            formData.room === room.number && { color: '#fff' }
+                                        ]}>Room {room.number}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        )}
+                        <TextInput
+                            style={[styles.input, { marginTop: 5 }]}
+                            placeholder="Room Number"
+                            value={formData.room}
+                            onChangeText={t => setFormData({ ...formData, room: t })}
+                        />
+                    </View>
+
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                            <Text style={styles.label}>Bed No.</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g. 1"
+                                value={formData.bed}
+                                onChangeText={t => setFormData({ ...formData, bed: t })}
+                            />
+                        </View>
+                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                            <Text style={styles.label}>Rent Amount <Text style={{ color: 'red' }}>*</Text></Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Monthly Rent"
+                                keyboardType="numeric"
+                                value={formData.rent}
+                                onChangeText={t => setFormData({ ...formData, rent: t })}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Adhaar Number (12 Digits) <Text style={{ color: COLORS.error }}>*</Text></Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Adhaar Number"
+                            keyboardType="numeric"
+                            maxLength={12}
+                            value={formData.adhaar}
+                            onChangeText={t => setFormData({ ...formData, adhaar: t.replace(/[^0-9]/g, '') })}
+                        />
+                    </View>
+
+                    {/* ID Uploads */}
+                    <Text style={[styles.label, { marginTop: 10, marginBottom: 12 }]}>Aadhar Photo (Front & Back)</Text>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity onPress={() => pickImage('aadharFront')} style={styles.idUploadBtn}>
+                            {images.aadharFront ? (
+                                <Image source={{ uri: images.aadharFront }} style={styles.idPreview} />
+                            ) : (
+                                <View style={styles.idPlaceholder}>
+                                    <Ionicons name="id-card-outline" size={24} color="#94A3B8" />
+                                    <Text style={styles.idUploadText}>Front View</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => pickImage('aadharBack')} style={styles.idUploadBtn}>
+                            {images.aadharBack ? (
+                                <Image source={{ uri: images.aadharBack }} style={styles.idPreview} />
+                            ) : (
+                                <View style={styles.idPlaceholder}>
+                                    <Ionicons name="id-card-outline" size={24} color="#94A3B8" />
+                                    <Text style={styles.idUploadText}>Back View</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.saveButtonMain, { backgroundColor: theme.primary }]}
+                        onPress={handleSave}
+                        disabled={saving}
+                    >
+                        <Text style={styles.saveButtonTextMain}>{saving ? 'Saving...' : (initialData ? 'Update Student' : 'Save Student')}</Text>
+                    </TouchableOpacity>
+                </ScrollView>
             </Animated.View>
         </View>
     );
@@ -400,23 +407,23 @@ const StudentDetailsDrawer = ({ isVisible, onClose, student, theme }) => {
         }).start();
     }, [isVisible]);
 
-    if (!isVisible && !student) return null;
+    if (!isVisible && slideAnim._value === height) return null;
 
     return (
-        <View style={styles.drawerOverlay} pointerEvents={isVisible ? "auto" : "none"}>
+        <View style={styles.drawerOverlay}>
             <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
             <Animated.View style={[styles.bottomSheetContainer, { transform: [{ translateY: slideAnim }] }]}>
                 <View style={styles.drawerHeader}>
                     <Text style={styles.drawerTitle}>Student Details</Text>
                     <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                        <Ionicons name="close" size={24} color={COLORS.gray800} />
+                        <Ionicons name="close" size={24} color="#1E293B" />
                     </TouchableOpacity>
                 </View>
 
                 {student && (
-                    <ScrollView contentContainerStyle={styles.detailsContent}>
+                    <ScrollView contentContainerStyle={styles.detailsScrollContent}>
                         <View style={styles.detailsProfile}>
-                            <View style={[styles.detailsAvatar, { backgroundColor: `${theme.primary}20` }]}>
+                            <View style={[styles.detailsAvatar, { backgroundColor: `${theme.primary}15` }]}>
                                 {student.profileImage ? (
                                     <Image source={{ uri: student.profileImage }} style={styles.avatarLarge} />
                                 ) : (
@@ -440,12 +447,14 @@ const StudentDetailsDrawer = ({ isVisible, onClose, student, theme }) => {
                             </View>
                             <View style={styles.infoItem}>
                                 <Text style={styles.infoLabel}>RENT</Text>
-                                <Text style={styles.infoValue}>₹{student.rent}</Text>
+                                <Text style={[styles.infoValue, { color: theme.primary }]}>₹{student.rent}</Text>
                             </View>
                             <View style={styles.infoItem}>
                                 <Text style={styles.infoLabel}>STATUS</Text>
-                                <View style={styles.statusTag}>
-                                    <Text style={styles.statusTagText}>Active</Text>
+                                <View style={[styles.statusTag, { backgroundColor: student.status === 'Inactive' ? '#FEE2E2' : '#DCFCE7' }]}>
+                                    <Text style={[styles.statusTagText, { color: student.status === 'Inactive' ? '#DC2626' : '#15803D' }]}>
+                                        {student.status || 'Active'}
+                                    </Text>
                                 </View>
                             </View>
                         </View>
@@ -458,7 +467,7 @@ const StudentDetailsDrawer = ({ isVisible, onClose, student, theme }) => {
                                     <Image source={{ uri: student.aadharFrontImage }} style={styles.documentImage} />
                                 ) : (
                                     <View style={styles.noDocument}>
-                                        <Ionicons name="image-outline" size={24} color={COLORS.gray400} />
+                                        <Ionicons name="image-outline" size={24} color="#94A3B8" />
                                     </View>
                                 )}
                             </View>
@@ -468,7 +477,7 @@ const StudentDetailsDrawer = ({ isVisible, onClose, student, theme }) => {
                                     <Image source={{ uri: student.aadharBackImage }} style={styles.documentImage} />
                                 ) : (
                                     <View style={styles.noDocument}>
-                                        <Ionicons name="image-outline" size={24} color={COLORS.gray400} />
+                                        <Ionicons name="image-outline" size={24} color="#94A3B8" />
                                     </View>
                                 )}
                             </View>
@@ -481,20 +490,20 @@ const StudentDetailsDrawer = ({ isVisible, onClose, student, theme }) => {
 };
 
 export default function Students({ navigation }) {
-    const [searchQuery, setSearchQuery] = useState('');
+    const [search, setSearch] = useState('');
     const [isDrawerOpen, setDrawerOpen] = useState(false);
     const [students, setStudents] = useState([]);
-    const [selectedStudent, setSelectedStudent] = useState(null); // For Details Viewer
-    const [editingStudent, setEditingStudent] = useState(null); // For Edit Form
-    const [isDetailsOpen, setDetailsOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [togglingIds, setTogglingIds] = useState([]); // Track which IDs are loading
     const [rooms, setRooms] = useState([]);
     const [loadingRooms, setLoadingRooms] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [editingStudent, setEditingStudent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [togglingIds, setTogglingIds] = useState([]);
     const { theme } = useTheme();
 
     useEffect(() => {
         loadStudents();
+        fetchRooms();
     }, []);
 
     const fetchRooms = async () => {
@@ -502,14 +511,12 @@ export default function Students({ navigation }) {
         try {
             const userId = auth.currentUser?.uid;
             if (!userId) return;
-
-            const roomsRef = collection(db, 'rooms');
-            const q = query(roomsRef, where("userId", "==", userId));
-            const snapshot = await getDocs(q);
-            const roomsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setRooms(roomsList);
-        } catch (error) {
-            console.error('Error fetching rooms:', error);
+            const ref = collection(db, 'rooms');
+            const q = query(ref, where("userId", "==", userId));
+            const snap = await getDocs(q);
+            setRooms(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (e) {
+            console.error(e);
         } finally {
             setLoadingRooms(false);
         }
@@ -523,15 +530,10 @@ export default function Students({ navigation }) {
             const studentsRef = collection(db, 'students');
             const q = query(studentsRef, where("userId", "==", userId));
             const snapshot = await getDocs(q);
-            const studentsList = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const studentsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setStudents(studentsList);
-            // Initial fetch of rooms
-            fetchRooms();
         } catch (error) {
-            console.error('Error loading students:', error);
+            console.error(error);
             showToast('Error loading students', 'error');
         } finally {
             setLoading(false);
@@ -539,28 +541,18 @@ export default function Students({ navigation }) {
     };
 
     const handleSaveStudent = async (formData, images) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+
+        const isEdit = !!editingStudent;
+        const studentId = isEdit ? editingStudent.id : doc(collection(db, 'students')).id;
+
         try {
-            const userId = auth.currentUser?.uid;
-            if (!userId) {
-                showToast('You must be logged in', 'error');
-                return;
-            }
-
-            // If editing, we update existing doc
-            const isEdit = !!editingStudent;
-            const docRef = isEdit ? doc(db, 'students', editingStudent.id) : doc(collection(db, 'students'));
-            const studentId = docRef.id;
-
-            const safeUpload = async (file, path) => {
-                if (!file || file.startsWith('http')) return file; // Already a URL
-                try { return await uploadFile(file, path); }
-                catch (e) { console.warn(`Upload failed: ${path}`, e); return null; }
-            };
-
+            // Upload images
             const [profileUrl, aadharFrontUrl, aadharBackUrl] = await Promise.all([
-                images.profile ? safeUpload(images.profile, `students/${studentId}/profile.jpg`) : null,
-                images.aadharFront ? safeUpload(images.aadharFront, `students/${studentId}/aadhar_front.jpg`) : null,
-                images.aadharBack ? safeUpload(images.aadharBack, `students/${studentId}/aadhar_back.jpg`) : null
+                images.profile && images.profile !== (editingStudent?.profileImage) ? uploadFile(images.profile, `students/${studentId}/profile.jpg`) : editingStudent?.profileImage || null,
+                images.aadharFront && images.aadharFront !== (editingStudent?.aadharFrontImage) ? uploadFile(images.aadharFront, `students/${studentId}/aadhar_front.jpg`) : editingStudent?.aadharFrontImage || null,
+                images.aadharBack && images.aadharBack !== (editingStudent?.aadharBackImage) ? uploadFile(images.aadharBack, `students/${studentId}/aadhar_back.jpg`) : editingStudent?.aadharBackImage || null,
             ]);
 
             const studentData = {
@@ -571,38 +563,24 @@ export default function Students({ navigation }) {
                 aadharFrontImage: aadharFrontUrl,
                 aadharBackImage: aadharBackUrl,
                 updatedAt: new Date().toISOString(),
-                // Keep existing fields if edit, else defaults
-                feeStatus: isEdit ? editingStudent.feeStatus : 'Pending',
                 status: isEdit ? editingStudent.status : 'Active'
             };
 
-            if (!isEdit) {
-                studentData.createdAt = new Date().toISOString();
-            }
-
+            const docRef = doc(db, 'students', studentId);
             await setDoc(docRef, studentData, { merge: true });
-
-            // Close BEFORE state updates to avoid "stuck" feeling
-            setDrawerOpen(false);
-            setEditingStudent(null);
 
             if (isEdit) {
                 setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...studentData } : s));
-                showToast('Student updated successfully!', 'success');
+                showToast('Student updated', 'success');
             } else {
                 setStudents(prev => [...prev, studentData]);
-                showToast('Student added successfully!', 'success');
+                showToast('Student added', 'success');
             }
         } catch (error) {
-            console.error('Error saving student:', error);
-            showToast('Failed to save student: ' + error.message, 'error');
+            console.error(error);
+            throw error;
         }
     };
-
-    const filteredStudents = students.filter(s =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.room.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     const handleToggleStatus = async (student) => {
         const newStatus = student.status === 'Inactive' ? 'Active' : 'Inactive';
@@ -610,86 +588,80 @@ export default function Students({ navigation }) {
 
         try {
             const studentRef = doc(db, 'students', student.id);
-            await setDoc(studentRef, { status: newStatus }, { merge: true });
+            await updateDoc(studentRef, { status: newStatus });
 
             setStudents(prev => prev.map(s =>
                 s.id === student.id ? { ...s, status: newStatus } : s
             ));
             showToast(`Student marked as ${newStatus}`, 'success');
         } catch (error) {
-            console.error("Status update failed:", error);
+            console.error(error);
             showToast("Failed to update status", "error");
         } finally {
             setTogglingIds(prev => prev.filter(id => id !== student.id));
         }
     };
 
-    return (
-        <View className="flex-1 bg-[#F5F7FA]">
-            {/* Header Background */}
-            <View className="absolute top-0 w-full h-[240px] rounded-b-[40px] z-0" style={{ backgroundColor: theme.primary }} />
+    const filtered = students.filter(s =>
+        s.name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.room?.toString().includes(search)
+    );
 
-            <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-                {/* Header */}
-                <View className="px-6 pt-2 pb-6 z-10 w-full">
-                    <View className="flex-row justify-between items-center mb-6">
-                        <View className="flex-1 mr-4">
-                            <Text className="text-white text-3xl font-bold">Students</Text>
-                        </View>
+    return (
+        <View style={styles.container}>
+            <View style={[styles.headerBg, { backgroundColor: theme.primary }]} />
+
+            <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+                <View style={styles.header}>
+                    <View style={styles.headerTop}>
+                        <Text style={styles.headerTitle}>Students</Text>
                         <ProfileHeader navigation={navigation} />
                     </View>
 
-                    {/* All Students Info Moved up */}
-                    <View className="flex-row justify-between mb-4 items-end">
-                        <Text className="text-white font-bold text-lg">All Students</Text>
-                        <View className="bg-white/20 px-3 py-1 rounded-lg">
-                            <Text className="text-white text-xs font-bold">{students.length} Total</Text>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>All Students</Text>
+                        <View style={styles.summaryBadge}>
+                            <Text style={styles.summaryBadgeText}>{students.length} Total</Text>
                         </View>
                     </View>
 
-                    {/* Search Bar */}
-                    <View className="bg-white rounded-2xl flex-row items-center px-4 py-3 shadow-sm border border-gray-50">
-                        <Ionicons name="search" size={20} color="#9ca3af" />
+                    <View style={styles.searchBar}>
+                        <Ionicons name="search" size={20} color="#94A3B8" />
                         <TextInput
-                            placeholder="Search by name or room..."
-                            placeholderTextColor="#9ca3af"
-                            className="flex-1 ml-3 text-gray-800 font-medium text-base"
-                            style={Platform.OS === 'web' ? { outlineStyle: 'none' } : {}}
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
+                            placeholder="Search name or room..."
+                            placeholderTextColor="#94A3B8"
+                            style={styles.searchInput}
+                            value={search}
+                            onChangeText={setSearch}
                         />
                     </View>
                 </View>
 
-                {/* List Content */}
                 <ScrollView
-                    className="flex-1 px-5"
+                    style={styles.list}
+                    contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 130, paddingTop: 10 }}
                 >
-
                     {loading ? (
-                        <View className="h-60 justify-center items-center">
+                        <View style={{ marginTop: 100, alignItems: 'center' }}>
                             <StayLoader />
-                            <Text className="text-center text-gray-400 mt-4">Loading students...</Text>
+                            <Text style={{ marginTop: 15, color: '#64748B' }}>Loading students...</Text>
                         </View>
-                    ) : filteredStudents.length === 0 ? (
-                        <View className="items-center mt-20">
-                            <Ionicons name="people-outline" size={64} color={COLORS.gray300} />
-                            <Text className="text-gray-500 text-lg mt-4 font-medium">
-                                {students.length === 0 ? "No students yet" : "No matches found"}
-                            </Text>
+                    ) : filtered.length === 0 ? (
+                        <View style={{ marginTop: 100, alignItems: 'center' }}>
+                            <Ionicons name="people-outline" size={64} color="#CBD5E1" />
+                            <Text style={{ marginTop: 15, color: '#64748B' }}>No students found</Text>
                         </View>
                     ) : (
-                        filteredStudents.map((student) => (
+                        filtered.map(s => (
                             <StudentItem
-                                key={student.id}
-                                student={student}
+                                key={s.id}
+                                student={s}
                                 theme={theme}
                                 togglingIds={togglingIds}
-                                onDetails={(s) => setSelectedStudent(s)}
-                                onEdit={(s) => {
-                                    setEditingStudent(s);
+                                onDetails={setSelectedStudent}
+                                onEdit={(val) => {
+                                    setEditingStudent(val);
                                     setDrawerOpen(true);
                                 }}
                                 onToggleStatus={handleToggleStatus}
@@ -699,23 +671,16 @@ export default function Students({ navigation }) {
                 </ScrollView>
             </SafeAreaView>
 
-            {/* FAB */}
-            {!isDrawerOpen && !isDetailsOpen && (
-                <TouchableOpacity
-                    onPress={() => {
-                        fetchRooms();
-                        setEditingStudent(null);
-                        setDrawerOpen(true);
-                    }}
-                    className="absolute bottom-24 right-6 w-16 h-16 rounded-full items-center justify-center shadow-2xl z-20"
-                    style={{ backgroundColor: theme.primary, elevation: 5 }}
-                    activeOpacity={0.9}
-                >
-                    <Ionicons name="add" size={32} color={COLORS.white} />
-                </TouchableOpacity>
-            )}
+            <TouchableOpacity
+                onPress={() => {
+                    setEditingStudent(null);
+                    setDrawerOpen(true);
+                }}
+                style={[styles.fab, { backgroundColor: theme.primary }]}
+            >
+                <Ionicons name="add" size={32} color="#fff" />
+            </TouchableOpacity>
 
-            {/* Drawers */}
             <AddDrawer
                 isVisible={isDrawerOpen}
                 onClose={() => {
@@ -723,8 +688,8 @@ export default function Students({ navigation }) {
                     setEditingStudent(null);
                 }}
                 onSave={handleSaveStudent}
-                initialData={editingStudent}
                 theme={theme}
+                initialData={editingStudent}
                 rooms={rooms}
                 loadingRooms={loadingRooms}
             />
@@ -735,396 +700,452 @@ export default function Students({ navigation }) {
                 student={selectedStudent}
                 theme={theme}
             />
-        </View >
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#F8FAFC',
+    },
+    headerBg: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 280,
+        borderBottomLeftRadius: 40,
+        borderBottomRightRadius: 40,
+    },
     header: {
-        paddingHorizontal: SPACING.l,
-        paddingTop: SPACING.m,
-        paddingBottom: SPACING.l,
+        paddingHorizontal: 20,
+        paddingTop: 65, // Further increased padding as requested
+        paddingBottom: 25,
     },
     headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: SPACING.m,
+        marginBottom: 20,
     },
     headerTitle: {
         fontSize: 32,
-        fontFamily: FONTS.bold,
-        color: COLORS.white,
+        fontWeight: '800',
+        color: '#fff',
     },
-    searchContainer: {
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    summaryLabel: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    summaryBadge: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 10,
+    },
+    summaryBadgeText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    searchBar: {
+        backgroundColor: '#fff',
+        borderRadius: 18,
+        paddingHorizontal: 15,
+        height: 52,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.white,
-        borderRadius: RADII.l,
-        paddingHorizontal: SPACING.m,
-        paddingVertical: 12,
-        ...SHADOWS.medium,
+        ...SHADOWS.light,
     },
     searchInput: {
         flex: 1,
-        marginLeft: SPACING.s,
-        fontFamily: FONTS.medium,
-        fontSize: FONTS.body,
-        color: COLORS.gray900,
+        marginLeft: 10,
+        fontSize: 16,
+        color: '#1E293B',
     },
-    sheetContainer: {
+    list: {
         flex: 1,
-        backgroundColor: COLORS.gray50,
-        borderTopLeftRadius: 40,
-        borderTopRightRadius: 40,
-        overflow: 'hidden',
-    },
-    scrollContent: {
-        padding: SPACING.l,
-        paddingBottom: 100,
     },
     // Student Card
     studentCard: {
-        backgroundColor: COLORS.white,
-        borderRadius: RADII.l,
-        padding: SPACING.m,
-        marginBottom: SPACING.m,
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 15,
         borderWidth: 1,
-        borderColor: COLORS.gray100,
+        borderColor: '#F1F5F9',
+        ...SHADOWS.light,
     },
-    cardContent: {
+    studentCardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: 15,
     },
-    avatarContainer: {
-        width: 56,
-        height: 56,
-        borderRadius: RADII.full,
-        alignItems: 'center',
+    studentAvatar: {
+        width: 52,
+        height: 52,
+        borderRadius: 15,
         justifyContent: 'center',
-        marginRight: SPACING.m,
-        borderWidth: 2,
-        borderColor: COLORS.white,
-        overflow: 'hidden',
+        alignItems: 'center',
+        marginRight: 15,
     },
-    avatar: {
+    studentAvatarImage: {
         width: '100%',
         height: '100%',
+        borderRadius: 15,
     },
-    avatarText: {
-        fontSize: 24,
-        fontFamily: FONTS.bold,
+    studentAvatarText: {
+        fontSize: 22,
+        fontWeight: 'bold',
     },
-    cardInfo: {
+    studentInfo: {
         flex: 1,
     },
     studentName: {
         fontSize: 18,
-        fontFamily: FONTS.bold,
-        color: COLORS.gray900,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginBottom: 2,
     },
-    studentPhone: {
-        fontSize: 12,
-        fontFamily: FONTS.medium,
-        color: COLORS.gray500,
-        marginBottom: 4,
+    studentRoom: {
+        fontSize: 13,
+        color: '#64748B',
+        fontWeight: '500',
     },
-    roomBadge: {
-        backgroundColor: COLORS.gray100,
-        alignSelf: 'flex-start',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: RADII.s,
+    studentRent: {
+        fontSize: 13,
+        fontWeight: '700',
+        marginTop: 2,
     },
-    roomBadgeText: {
+    statusBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    statusText: {
         fontSize: 10,
-        fontFamily: FONTS.medium,
-        color: COLORS.gray600,
+        fontWeight: '800',
     },
-    callButton: {
-        width: 36,
-        height: 36,
-        borderRadius: RADII.full,
-        backgroundColor: COLORS.primaryLight + '20', // roughly faded blue
+    studentActions: {
+        flexDirection: 'row',
+        gap: 10,
+        paddingTop: 15,
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
+    },
+    actionButtonCall: {
+        flex: 1,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: SPACING.s,
+        backgroundColor: '#EFF6FF',
+        paddingVertical: 10,
+        borderRadius: 12,
     },
-    // Empty State
-    centerContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 60,
-    },
-    loadingText: {
-        marginTop: SPACING.m,
-        color: COLORS.gray500,
-        fontFamily: FONTS.medium,
-    },
-    emptyText: {
-        marginTop: SPACING.m,
-        fontSize: 18,
-        color: COLORS.gray500,
-        fontFamily: FONTS.medium,
-    },
-    subText: {
-        marginTop: SPACING.xs,
+    actionButtonCallText: {
+        marginLeft: 6,
+        color: '#2563EB',
+        fontWeight: '700',
         fontSize: 14,
-        color: COLORS.gray400,
+    },
+    actionButtonEdit: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#F8FAFC',
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    actionButtonEditText: {
+        marginLeft: 6,
+        color: '#475569',
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    actionButtonToggle: {
+        flex: 1.2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 12,
+    },
+    actionButtonActivate: {
+        backgroundColor: '#ECFDF5',
+    },
+    actionButtonBlock: {
+        backgroundColor: '#FEF2F2',
+    },
+    actionButtonToggleText: {
+        marginLeft: 6,
+        fontWeight: '700',
+        fontSize: 14,
     },
     fab: {
         position: 'absolute',
-        bottom: 100,
-        right: 24,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        alignItems: 'center',
+        bottom: 30,
+        right: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         justifyContent: 'center',
-        zIndex: 20,
+        alignItems: 'center',
+        ...SHADOWS.medium,
+        elevation: 8,
     },
-    // Drawer Common
+    // Drawers
     drawerOverlay: {
         position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        zIndex: 50,
-        elevation: 50,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1000,
     },
     backdrop: {
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    drawerContainer: {
-        position: 'absolute',
-        right: 0, top: 0, bottom: 0,
-        width: width > 500 ? 500 : '85%', // Increased width slightly
-        backgroundColor: COLORS.white,
-        ...SHADOWS.heavy,
-        zIndex: 60,
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
     },
     bottomSheetContainer: {
         position: 'absolute',
-        bottom: 0, left: 0, right: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
         height: height * 0.85,
-        backgroundColor: COLORS.white,
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 35,
+        borderTopRightRadius: 35,
         ...SHADOWS.heavy,
-        overflow: 'hidden',
+        elevation: 20,
     },
-    drawerContent: { flex: 1 },
     drawerHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: SPACING.l,
+        padding: 24,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.gray100,
+        borderBottomColor: '#F1F5F9',
     },
     drawerTitle: {
-        fontSize: 24,
-        fontFamily: FONTS.bold,
-        color: COLORS.gray900,
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#1E293B',
     },
     closeButton: {
-        padding: SPACING.s,
-        backgroundColor: COLORS.gray100,
-        borderRadius: RADII.full,
+        padding: 8,
+        backgroundColor: '#F1F5F9',
+        borderRadius: 12,
     },
-    drawerFooter: {
-        flexDirection: 'row',
-        paddingHorizontal: SPACING.l,
-        paddingTop: SPACING.m,
-        paddingBottom: SPACING.xl + 60, // Increased specific padding as requested
-        borderTopWidth: 1,
-        borderTopColor: COLORS.gray100,
-        backgroundColor: COLORS.white,
-        gap: SPACING.m,
-        position: 'absolute', // Pin to bottom relative to Safe Area
-        bottom: 0,
-        left: 0,
-        right: 0,
-    },
-    loaderOverlay: {
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
-    },
-    loaderText: {
-        marginTop: SPACING.m,
-        fontFamily: FONTS.bold,
-        color: COLORS.gray800,
-    },
-    // Form Styles
-    formContainer: {
-        padding: SPACING.l,
-        paddingBottom: 180,
+    formScrollContent: {
+        padding: 24,
+        paddingBottom: 50,
     },
     profileUploadContainer: {
         alignItems: 'center',
-        marginBottom: SPACING.l,
+        marginBottom: 25,
     },
     profileUploadBtn: {
         width: 100,
         height: 100,
-        borderRadius: RADII.full,
-        backgroundColor: COLORS.gray50,
+        borderRadius: 50,
+        backgroundColor: '#F8FAFC',
         borderWidth: 2,
-        borderColor: COLORS.gray200,
+        borderColor: '#E2E8F0',
         borderStyle: 'dashed',
-        alignItems: 'center',
         justifyContent: 'center',
+        alignItems: 'center',
         overflow: 'hidden',
     },
-    profilePreview: { width: '100%', height: '100%' },
-    profilePlaceholder: { alignItems: 'center', justifyContent: 'center' },
-    uploadLabel: {
-        marginTop: SPACING.s,
-        fontSize: 12,
-        fontFamily: FONTS.bold,
-        color: COLORS.gray500,
+    profilePreview: {
+        width: '100%',
+        height: '100%',
     },
-    inputGroup: { marginBottom: SPACING.m },
+    profilePlaceholder: {
+        alignItems: 'center',
+    },
+    inputGroup: {
+        marginBottom: 20,
+    },
     label: {
         fontSize: 14,
-        fontFamily: FONTS.bold,
-        color: COLORS.gray700,
-        marginBottom: SPACING.xs,
+        fontWeight: '700',
+        color: '#475569',
+        marginBottom: 8,
     },
-    required: { color: COLORS.error },
     input: {
-        backgroundColor: COLORS.gray50,
-        padding: SPACING.m,
-        borderRadius: RADII.m,
+        backgroundColor: '#F8FAFC',
+        padding: 16,
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: COLORS.gray200,
-        fontFamily: FONTS.medium,
-        color: COLORS.gray900,
-    },
-    row: { flexDirection: 'row' },
-    idProofSection: {
-        backgroundColor: COLORS.gray50,
-        padding: SPACING.m,
-        borderRadius: RADII.l,
-        borderWidth: 1,
-        borderColor: COLORS.gray200,
-        borderStyle: 'dashed',
-        marginTop: SPACING.m,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontFamily: FONTS.bold,
-        color: COLORS.gray900,
-        marginBottom: SPACING.m,
+        borderColor: '#E2E8F0',
+        fontSize: 15,
+        color: '#1E293B',
     },
     idUploadBtn: {
         flex: 1,
-        height: 100,
-        backgroundColor: COLORS.white,
+        height: 110,
+        borderRadius: 16,
+        backgroundColor: '#F8FAFC',
         borderWidth: 1,
-        borderColor: COLORS.gray200,
-        borderRadius: RADII.m,
-        alignItems: 'center',
+        borderColor: '#E2E8F0',
+        borderStyle: 'dashed',
         justifyContent: 'center',
-        marginHorizontal: 4,
+        alignItems: 'center',
         overflow: 'hidden',
     },
-    idPreview: { width: '100%', height: '100%' },
-    idPlaceholder: { alignItems: 'center' },
-    idUploadText: { fontSize: 10, color: COLORS.gray500, marginTop: 4 },
-    resetButton: {
-        flex: 1,
-        padding: SPACING.m,
-        borderRadius: RADII.l,
+    idPreview: {
+        width: '100%',
+        height: '100%',
+    },
+    idPlaceholder: {
         alignItems: 'center',
-        backgroundColor: COLORS.gray100,
-        ...SHADOWS.light,
     },
-    resetButtonText: {
-        color: COLORS.gray700,
-        fontFamily: FONTS.bold,
-        fontSize: 16,
+    idUploadText: {
+        fontSize: 11,
+        color: '#94A3B8',
+        fontWeight: '600',
+        marginTop: 6,
     },
-    saveButton: {
-        flex: 2,
-        padding: SPACING.m,
-        borderRadius: RADII.l,
+    saveButtonMain: {
+        marginTop: 30,
+        padding: 18,
+        borderRadius: 20,
         alignItems: 'center',
-        ...SHADOWS.light,
-    },
-    saveButtonText: {
-        color: COLORS.white,
-        fontFamily: FONTS.bold,
-        fontSize: 16,
-    },
-    // Details Styles
-    detailsContent: { padding: SPACING.l, paddingBottom: 180 },
-    detailsProfile: { alignItems: 'center', marginBottom: SPACING.xl },
-    detailsAvatar: {
-        width: 100,
-        height: 100,
-        borderRadius: RADII.full,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: SPACING.m,
-        borderWidth: 4,
-        borderColor: COLORS.white,
         ...SHADOWS.medium,
     },
-    avatarLarge: { width: '100%', height: '100%', borderRadius: 50 },
-    avatarTextLarge: { fontSize: 40, fontFamily: FONTS.bold },
-    detailsName: { fontSize: 24, fontFamily: FONTS.bold, color: COLORS.gray900 },
-    detailsPhone: { fontSize: 16, fontFamily: FONTS.medium, color: COLORS.gray500 },
-    hostelChip: {
+    saveButtonTextMain: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '800',
+    },
+    roomChip: {
         paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: RADII.full,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: COLORS.gray200,
-        marginRight: 8,
-        backgroundColor: COLORS.gray50,
+        borderColor: '#E2E8F0',
+        marginRight: 10,
+        backgroundColor: '#F8FAFC',
     },
-    hostelChipText: {
-        fontFamily: FONTS.bold,
-        color: COLORS.gray600,
+    roomChipText: {
+        fontWeight: '700',
+        color: '#64748B',
+    },
+    detailsScrollContent: {
+        padding: 24,
+    },
+    detailsProfile: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    detailsAvatar: {
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+        borderWidth: 4,
+        borderColor: '#fff',
+        ...SHADOWS.medium,
+    },
+    avatarLarge: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 55,
+    },
+    avatarTextLarge: {
+        fontSize: 42,
+        fontWeight: 'bold',
+    },
+    detailsName: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#1E293B',
+        marginBottom: 4,
+    },
+    detailsPhone: {
+        fontSize: 16,
+        color: '#64748B',
+        fontWeight: '600',
     },
     infoGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        backgroundColor: COLORS.gray50,
-        borderRadius: RADII.xl,
-        padding: SPACING.m,
-        marginBottom: SPACING.xl,
+        backgroundColor: '#F8FAFC',
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 30,
     },
-    infoItem: { width: '50%', marginBottom: SPACING.m, paddingHorizontal: SPACING.s },
-    infoLabel: { fontSize: 10, fontFamily: FONTS.bold, color: COLORS.gray400, marginBottom: 4 },
-    infoValue: { fontSize: 16, fontFamily: FONTS.bold, color: COLORS.gray800 },
+    infoItem: {
+        width: '50%',
+        marginBottom: 20,
+    },
+    infoLabel: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#94A3B8',
+        marginBottom: 6,
+        letterSpacing: 0.5,
+    },
+    infoValue: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#1E293B',
+    },
     statusTag: {
-        backgroundColor: '#DCFCE7',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: RADII.s,
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 10,
         alignSelf: 'flex-start',
     },
-    statusTagText: { color: '#15803D', fontWeight: 'bold', fontSize: 12 },
-    sectionHeader: { fontSize: 18, fontFamily: FONTS.bold, color: COLORS.gray900, marginBottom: SPACING.m },
-    documentsRow: { flexDirection: 'row', gap: SPACING.m },
-    documentCard: { flex: 1 },
-    documentLabel: { fontSize: 12, color: COLORS.gray500, marginBottom: 8 },
-    documentImage: { width: '100%', height: 120, borderRadius: RADII.m, borderWidth: 1, borderColor: COLORS.gray200 },
+    statusTagText: {
+        fontSize: 12,
+        fontWeight: '800',
+    },
+    sectionHeader: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#1E293B',
+        marginBottom: 16,
+    },
+    documentsRow: {
+        flexDirection: 'row',
+        gap: 15,
+    },
+    documentCard: {
+        flex: 1,
+    },
+    documentLabel: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    documentImage: {
+        width: '100%',
+        height: 120,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
     noDocument: {
         width: '100%',
         height: 120,
-        borderRadius: RADII.m,
-        backgroundColor: COLORS.gray50,
-        alignItems: 'center',
+        borderRadius: 16,
+        backgroundColor: '#F1F5F9',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: COLORS.gray200,
+        alignItems: 'center',
     },
 });
-

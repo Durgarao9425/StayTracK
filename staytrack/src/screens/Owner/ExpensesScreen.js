@@ -136,11 +136,11 @@ export default function ExpensesScreen({ navigation }) {
     return (
         <View className="flex-1 bg-[#F5F7FA]">
             {/* Header Background */}
-            <View className="absolute top-0 w-full h-[220px] rounded-b-[40px] z-0" style={{ backgroundColor: theme.primary }} />
+            <View className="absolute top-0 w-full h-[260px] rounded-b-[40px] z-0" style={{ backgroundColor: theme.primary }} />
 
             <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
                 {/* Header */}
-                <View className="px-6 pt-2 pb-6 z-10 w-full">
+                <View className="px-6 pt-6 pb-6 z-10 w-full">
                     <View className="flex-row justify-between items-center mb-6">
                         <View className="flex-row items-center">
                             <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3 bg-white/20 p-2 rounded-full">
@@ -223,10 +223,11 @@ export default function ExpensesScreen({ navigation }) {
                 {/* FAB */}
                 <TouchableOpacity
                     onPress={() => setAddModalOpen(true)}
-                    className="absolute bottom-6 right-6 w-16 h-16 rounded-full items-center justify-center shadow-2xl z-20"
+                    className="absolute bottom-10 right-6 w-20 h-20 rounded-full items-center justify-center shadow-2xl z-20"
                     style={{ backgroundColor: theme.primary, elevation: 5 }}
+                    activeOpacity={0.9}
                 >
-                    <Ionicons name="add" size={32} color="white" />
+                    <Ionicons name="add" size={38} color="white" />
                 </TouchableOpacity>
 
                 {/* Add Expense Modal */}

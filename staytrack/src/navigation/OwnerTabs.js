@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS, FONTS, SHADOWS } from '../theme/theme';
 
@@ -19,7 +19,7 @@ export default function OwnerTabs() {
         <Tab.Navigator
             screenOptions={({ route }) => ({
                 headerShown: false,
-                tabBarShowLabel: true,
+                tabBarShowLabel: false,
                 tabBarIcon: ({ focused, color }) => {
                     let iconName;
                     if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
@@ -28,28 +28,20 @@ export default function OwnerTabs() {
                     else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
 
                     return (
-                        <Ionicons name={iconName} size={24} color={color} style={{ marginBottom: -4 }} />
+                        <View style={{ marginTop: Platform.OS === 'ios' ? 0 : -5 }}>
+                            <Ionicons name={iconName} size={34} color={color} />
+                        </View>
                     );
                 },
                 tabBarActiveTintColor: theme.primary,
-                tabBarInactiveTintColor: COLORS.gray400,
-                tabBarLabelStyle: {
-                    fontFamily: FONTS.medium, // Assuming medium font exists or falls back
-                    fontSize: 10,
-                    marginBottom: 4,
-                },
+                tabBarInactiveTintColor: COLORS.gray600,
                 tabBarStyle: {
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: Platform.OS === 'ios' ? 80 : 60,
+                    height: Platform.OS === 'ios' ? 85 : 75,
                     backgroundColor: COLORS.white,
                     borderTopWidth: 0,
-                    paddingTop: 8,
-                    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-                    ...SHADOWS.medium, // Use consistent shadow
-                    elevation: 8,
+                    paddingTop: 0,
+                    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+                    ...SHADOWS.medium,
                 },
             })}
         >

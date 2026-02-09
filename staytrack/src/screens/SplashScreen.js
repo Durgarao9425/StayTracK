@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, ActivityIndicator, Image, Animated, Easing } from "react-native";
+import { View, Text, ActivityIndicator, Image, Animated, Easing, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../config/firebase";
@@ -19,14 +19,14 @@ export default function SplashScreen({ navigation }) {
             Animated.timing(fadeAnim, {
                 toValue: 1,
                 duration: 800,
-                useNativeDriver: true,
+                useNativeDriver: Platform.OS !== 'web',
                 easing: Easing.out(Easing.cubic),
             }),
             Animated.spring(scaleAnim, {
                 toValue: 1,
                 friction: 4,
                 tension: 40,
-                useNativeDriver: true,
+                useNativeDriver: Platform.OS !== 'web',
             }),
         ]).start();
 
@@ -37,13 +37,13 @@ export default function SplashScreen({ navigation }) {
                     toValue: 1.1,
                     duration: 1000,
                     easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
                 Animated.timing(pulseAnim, {
                     toValue: 1,
                     duration: 1000,
                     easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
             ])
         ).start();
@@ -54,7 +54,7 @@ export default function SplashScreen({ navigation }) {
                 toValue: 1,
                 duration: 3000,
                 easing: Easing.linear,
-                useNativeDriver: true,
+                useNativeDriver: Platform.OS !== 'web',
             })
         ).start();
 
@@ -64,13 +64,13 @@ export default function SplashScreen({ navigation }) {
                 Animated.timing(textFadeAnim, {
                     toValue: 1,
                     duration: 600,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
                 Animated.timing(textSlideAnim, {
                     toValue: 0,
                     duration: 600,
                     easing: Easing.out(Easing.cubic),
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
             ]).start();
         }, 300);
@@ -105,6 +105,7 @@ export default function SplashScreen({ navigation }) {
 
             {/* ANIMATED LOGO CONTAINER */}
             <Animated.View
+                collapsable={Platform.OS === 'web' ? undefined : false}
                 style={{
                     opacity: fadeAnim,
                     transform: [
@@ -112,6 +113,7 @@ export default function SplashScreen({ navigation }) {
                     ],
                     marginBottom: 20,
                     position: 'relative',
+                    ...(Platform.OS === 'web' && { transformOrigin: 'center' })
                 }}
             >
                 {/* Rotating Decorative Ring */}
@@ -140,11 +142,16 @@ export default function SplashScreen({ navigation }) {
                         backgroundColor: '#E0F7F7',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        shadowColor: '#00A8A8',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 8,
-                        elevation: 8,
+                        ...Platform.select({
+                            web: { boxShadow: '0 4px 8px rgba(0, 168, 168, 0.2)' },
+                            default: {
+                                shadowColor: '#00A8A8',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.2,
+                                shadowRadius: 8,
+                                elevation: 8,
+                            }
+                        })
                     }}
                 >
                     {/* Inner Circle */}
@@ -162,10 +169,10 @@ export default function SplashScreen({ navigation }) {
                         {/* LOGO */}
                         <Image
                             source={require('../../assets/logo.png')}
+                            resizeMode="contain"
                             style={{
                                 width: 90,
                                 height: 90,
-                                resizeMode: "contain",
                                 backgroundColor: 'transparent',
                             }}
                         />

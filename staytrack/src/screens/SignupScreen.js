@@ -102,7 +102,7 @@ export default function SignupScreen({ navigation }) {
                     errorMessage = "⚠️ Password is too weak.";
                     break;
                 default:
-                    errorMessage = `❌ ${error.message}`;
+                    errorMessage = `❌ Signup failed: ${error.message}`;
             }
             showToast(errorMessage, 'error');
         } finally {

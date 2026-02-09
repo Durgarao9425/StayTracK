@@ -21,8 +21,8 @@ const RoomItem = ({ room, onPress }) => (
         className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex-row justify-between items-center"
     >
         <View className="flex-row items-center">
-            <View className="w-12 h-12 rounded-xl justify-center items-center mr-4" style={{ backgroundColor: room.color.bg }}>
-                <Ionicons name="bed" size={24} color={room.color.text} />
+            <View className="w-14 h-14 rounded-xl justify-center items-center mr-4" style={{ backgroundColor: room.color.bg }}>
+                <Ionicons name="bed" size={26} color={room.color.text} />
             </View>
             <View>
                 <Text className="text-lg font-bold text-gray-900">Room {room.number}</Text>
@@ -345,11 +345,11 @@ export default function Rooms({ navigation }) {
     return (
         <View className="flex-1 bg-[#F5F7FA]">
             {/* Header Background */}
-            <View className="absolute top-0 w-full h-[240px] rounded-b-[40px] z-0" style={{ backgroundColor: theme.primary }} />
+            <View className="absolute top-0 w-full h-[280px] rounded-b-[40px] z-0" style={{ backgroundColor: theme.primary }} />
 
             <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
                 {/* Header */}
-                <View className="px-6 pt-2 pb-6 z-10 w-full">
+                <View className="px-5 pt-8 pb-6 z-10 w-full">
                     <View className="flex-row justify-between items-center mb-6">
                         <View className="flex-1 mr-4">
                             <Text className="text-white text-3xl font-bold">Rooms</Text>
@@ -367,7 +367,7 @@ export default function Rooms({ navigation }) {
 
                     {/* Search Bar */}
                     <View className="bg-white rounded-2xl flex-row items-center px-4 py-3 shadow-sm border border-gray-50">
-                        <Ionicons name="search" size={20} color="#9ca3af" />
+                        <Ionicons name="search" size={20} color="#6b7280" />
                         <TextInput
                             placeholder="Search rooms..."
                             placeholderTextColor="#9ca3af"
@@ -383,7 +383,7 @@ export default function Rooms({ navigation }) {
                 <ScrollView
                     className="flex-1 px-5"
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 130, paddingTop: 10 }}
+                    contentContainerStyle={{ paddingBottom: 20, paddingTop: 10 }}
                 >
 
                     {loading ? (
@@ -422,7 +422,7 @@ export default function Rooms({ navigation }) {
                         fetchHostels();
                         setDrawerOpen(true);
                     }}
-                    className="absolute bottom-24 right-6 w-16 h-16 rounded-full items-center justify-center shadow-2xl z-20"
+                    className="absolute bottom-24 right-6 w-14 h-14 rounded-full items-center justify-center shadow-2xl z-20"
                     style={{ backgroundColor: theme.primary, elevation: 5 }}
                     activeOpacity={0.9}
                 >
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: SPACING.l,
-        paddingBottom: 100,
+        paddingBottom: 20,
     },
     listHeader: {
         flexDirection: 'row',
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     },
     formContainer: {
         padding: SPACING.l,
-        paddingBottom: 100,
+        paddingBottom: 20,
     },
     inputGroup: {
         marginBottom: SPACING.l,

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SHADOWS } from '../theme/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -33,7 +34,10 @@ export default function OnboardingScreen({ navigation }) {
                     <View style={{ position: 'relative' }}>
 
                         {/* Outer Decorative Circle */}
-                        <View className="w-72 h-72 bg-teal-50 rounded-full justify-center items-center shadow-sm">
+                        <View
+                            className="w-72 h-72 bg-teal-50 rounded-full justify-center items-center"
+                            style={SHADOWS.light}
+                        >
 
                             {/* Corner Accent Dots */}
                             <View style={{ position: 'absolute', top: 20, left: 20, width: 16, height: 16, borderRadius: 8, backgroundColor: '#FF6B3D' }} />
@@ -46,7 +50,10 @@ export default function OnboardingScreen({ navigation }) {
                             <View style={{ position: 'absolute', bottom: 10, left: '50%', marginLeft: -6, width: 12, height: 12, borderRadius: 6, backgroundColor: '#07A0F6', opacity: 0.6 }} />
 
                             {/* Inner Logo Circle */}
-                            <View className="w-56 h-56 bg-teal-100 rounded-full justify-center items-center overflow-hidden border-4 border-white shadow-lg">
+                            <View
+                                className="w-56 h-56 bg-teal-100 rounded-full justify-center items-center overflow-hidden border-4 border-white"
+                                style={SHADOWS.heavy}
+                            >
                                 <Image
                                     source={require('../../assets/logo.png')}
                                     style={{ width: '90%', height: '90%', backgroundColor: 'transparent' }}
@@ -83,7 +90,8 @@ export default function OnboardingScreen({ navigation }) {
                 {/* Button */}
                 <TouchableOpacity
                     onPress={handleGetStarted}
-                    className="w-full bg-teal-600 py-4 rounded-xl shadow-lg active:scale-95 transition-all"
+                    className="w-full bg-teal-600 py-4 rounded-xl active:scale-95 transition-all"
+                    style={SHADOWS.heavy}
                 >
                     <Text className="text-white text-center text-xl font-bold">Get Started</Text>
                 </TouchableOpacity>

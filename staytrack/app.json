@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "staytrack",
-    "slug": "staytrack",
+    "name": "StayTracK",
+    "slug": "StayTracK",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,11 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.durgarao2.appStayTracK"
     },
     "android": {
-      "package": "com.staytrack.app",
-      "versionCode": 1,
+      "package": "com.durgarao2.appStayTracK",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -27,7 +28,7 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ],
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,8 +38,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "3091b2bb-6c1a-499f-b4d9-bdf080d2f37f"
+        "projectId": "76151590-d059-47dd-bcea-7e1be554b7b6"
       }
-    }
+    },
+    "owner": "durgarao2"
   }
 }

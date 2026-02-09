@@ -1,10 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Animated, Dimensions, Keyboard } from 'react-native';
+import {
+    View,
+    Text,
+    ScrollView,
+    TouchableOpacity,
+    TextInput,
+    Animated,
+    Dimensions,
+    Keyboard,
+    StyleSheet,
+    Platform,
+    ActivityIndicator,
+    SafeAreaView
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import ProfileHeader from '../../components/ProfileHeader';
-import { collection, addDoc, setDoc, doc, getDocs, query, where } from 'firebase/firestore';
+import { collection, setDoc, doc, getDocs, query, where } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase';
 import showToast from '../../utils/toast';
 import StayLoader from '../../components/StayLoader';
@@ -13,40 +25,40 @@ const { height, width } = Dimensions.get('window');
 
 const HostelCard = ({ hostel, onPress }) => (
     <TouchableOpacity
-        className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-gray-100 active:scale-95 transition-transform"
+        style={styles.hostelCard}
         onPress={onPress}
+        activeOpacity={0.7}
     >
-        <View className="flex-row items-start justify-between mb-2">
-            <View className="flex-row items-center">
-                <View className="w-12 h-12 rounded-xl bg-blue-100 items-center justify-center mr-4">
+        <View style={styles.cardHeader}>
+            <View style={styles.cardIconTitle}>
+                <View style={[styles.iconBox, { backgroundColor: '#eff6ff' }]}>
                     <Ionicons name="business" size={24} color="#2563eb" />
                 </View>
-                <View>
-                    <Text className="text-gray-900 font-bold text-lg">{hostel.name}</Text>
-                    <Text className="text-gray-500 text-xs font-medium">{hostel.address}</Text>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.hostelName} numberOfLines={1}>{hostel.name}</Text>
+                    <Text style={styles.hostelAddress} numberOfLines={1}>{hostel.address}</Text>
                 </View>
             </View>
-            <View className="bg-green-100 px-3 py-1 rounded-full">
-                <Text className="text-green-700 text-xs font-bold">Active</Text>
+            <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>Active</Text>
             </View>
         </View>
 
-        <View className="flex-row mt-3 pt-3 border-t border-gray-50">
-            <View className="mr-6">
-                <Text className="text-gray-400 text-xs font-bold uppercase">Capacity</Text>
-                <Text className="text-gray-800 font-bold">{hostel.capacity} Beds</Text>
+        <View style={styles.cardFooter}>
+            <View style={styles.statBox}>
+                <Text style={styles.statLabel}>Capacity</Text>
+                <Text style={styles.statValue}>{hostel.capacity} Beds</Text>
             </View>
-            <View>
-                <Text className="text-gray-400 text-xs font-bold uppercase">Contact</Text>
-                <Text className="text-gray-800 font-bold">{hostel.contact}</Text>
+            <View style={styles.statBox}>
+                <Text style={styles.statLabel}>Contact</Text>
+                <Text style={styles.statValue}>{hostel.contact}</Text>
             </View>
         </View>
     </TouchableOpacity>
 );
 
-// Add Hostel Drawer - SLIDES FROM RIGHT
 const AddHostelDrawer = ({ isVisible, onClose, onSave, theme }) => {
-    const slideAnim = useRef(new Animated.Value(width)).current;
+    const slideAnim = useRef(new Animated.Value(height)).current;
     const [formData, setFormData] = useState({
         name: '',
         address: '',
@@ -54,9 +66,11 @@ const AddHostelDrawer = ({ isVisible, onClose, onSave, theme }) => {
         capacity: ''
     });
     const [saving, setSaving] = useState(false);
+    const [showDrawer, setShowDrawer] = useState(false);
 
     useEffect(() => {
         if (isVisible) {
+            setShowDrawer(true);
             Animated.timing(slideAnim, {
                 toValue: 0,
                 duration: 300,
@@ -64,13 +78,14 @@ const AddHostelDrawer = ({ isVisible, onClose, onSave, theme }) => {
             }).start();
         } else {
             Animated.timing(slideAnim, {
-                toValue: width,
+                toValue: height,
                 duration: 300,
                 useNativeDriver: true,
-            }).start();
-            setTimeout(() => {
-                setFormData({ name: '', address: '', contact: '', capacity: '' });
-            }, 300);
+            }).start(() => setShowDrawer(false));
+        }
+
+        if (isVisible) {
+            setFormData({ name: '', address: '', contact: '', capacity: '' });
         }
     }, [isVisible]);
 
@@ -83,126 +98,94 @@ const AddHostelDrawer = ({ isVisible, onClose, onSave, theme }) => {
         setSaving(true);
         try {
             await onSave(formData);
+            onClose();
         } catch (error) {
             console.error("Save failed:", error);
+            showToast('Failed to save hostel', 'error');
         } finally {
             setSaving(false);
         }
     };
 
-    if (!isVisible) return null;
+    if (!showDrawer && !isVisible) return null;
 
     return (
-        <View className="absolute inset-0 z-50" pointerEvents={isVisible ? "auto" : "none"}>
-            {/* Backdrop - Blocks all interaction including scroll */}
-            {isVisible && (
-                <View className="absolute inset-0">
-                    <TouchableOpacity
-                        className="absolute inset-0 bg-black/50"
-                        activeOpacity={1}
-                        onPress={onClose}
-                    />
+        <View style={styles.drawerOverlay} pointerEvents={isVisible ? "auto" : "none"}>
+            <TouchableOpacity
+                style={styles.backdrop}
+                activeOpacity={1}
+                onPress={onClose}
+            />
+            <Animated.View style={[styles.bottomSheetContainer, { transform: [{ translateY: slideAnim }] }]}>
+                <View style={styles.drawerHeader}>
+                    <Text style={styles.drawerTitle}>Add Hostel</Text>
+                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                        <Ionicons name="close" size={24} color="#1E293B" />
+                    </TouchableOpacity>
                 </View>
-            )}
 
-            <Animated.View
-                style={{
-                    transform: [{ translateX: slideAnim }],
-                    width: width > 500 ? 400 : width * 0.95
-                }}
-                className="absolute right-0 top-0 bottom-0 bg-white shadow-2xl"
-            >
-                <SafeAreaView className="h-full" edges={['bottom']}>
-                    <View className="h-full">
-                        {/* Header */}
-                        <View className="flex-row justify-between items-center px-6 pt-6 pb-4 border-b border-gray-100">
-                            <Text className="text-2xl font-bold text-gray-800">Add Hostel</Text>
-                            <TouchableOpacity onPress={onClose} className="bg-gray-100 p-2 rounded-full">
-                                <Ionicons name="close" size={24} color="#333" />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Form Fields - Scrollable */}
-                        <View className="flex-1">
-                            <ScrollView
-                                showsVerticalScrollIndicator={false}
-                                keyboardShouldPersistTaps="handled"
-                                onScrollBeginDrag={() => Keyboard.dismiss()}
-                                contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 }}
-                            >
-                                <View className="space-y-5">
-                                    <View>
-                                        <Text className="text-gray-700 text-sm font-semibold mb-2">Hostel Name <Text className="text-red-500">*</Text></Text>
-                                        <TextInput
-                                            placeholder="e.g. Sunrise Boys Hostel"
-                                            className="bg-gray-50 px-4 py-3.5 rounded-xl border border-gray-200 text-gray-800 font-medium"
-                                            value={formData.name}
-                                            onChangeText={(text) => setFormData({ ...formData, name: text })}
-                                        />
-                                    </View>
-
-                                    <View>
-                                        <Text className="text-gray-700 text-sm font-semibold mb-2">Address <Text className="text-red-500">*</Text></Text>
-                                        <TextInput
-                                            placeholder="Full address"
-                                            className="bg-gray-50 px-4 py-3.5 rounded-xl border border-gray-200 text-gray-800 font-medium"
-                                            value={formData.address}
-                                            onChangeText={(text) => setFormData({ ...formData, address: text })}
-                                            multiline
-                                        />
-                                    </View>
-
-                                    <View>
-                                        <Text className="text-gray-700 text-sm font-semibold mb-2">Contact Number <Text className="text-red-500">*</Text></Text>
-                                        <TextInput
-                                            placeholder="Phone number"
-                                            keyboardType="numeric"
-                                            maxLength={10}
-                                            className="bg-gray-50 px-4 py-3.5 rounded-xl border border-gray-200 text-gray-800 font-medium"
-                                            value={formData.contact}
-                                            onChangeText={(text) => setFormData({ ...formData, contact: text.replace(/[^0-9]/g, '') })}
-                                        />
-                                    </View>
-
-                                    <View>
-                                        <Text className="text-gray-700 text-sm font-semibold mb-2">Total Capacity <Text className="text-red-500">*</Text></Text>
-                                        <TextInput
-                                            placeholder="Total beds"
-                                            keyboardType="numeric"
-                                            className="bg-gray-50 px-4 py-3.5 rounded-xl border border-gray-200 text-gray-800 font-medium"
-                                            value={formData.capacity}
-                                            onChangeText={(text) => setFormData({ ...formData, capacity: text.replace(/[^0-9]/g, '') })}
-                                        />
-                                    </View>
-                                </View>
-                            </ScrollView>
-                        </View>
-
-                        {/* Fixed Button at Bottom */}
-                        <View className="px-6 pb-8 pt-4 bg-white border-t border-gray-100">
-                            <TouchableOpacity
-                                className="py-4 rounded-xl shadow-lg"
-                                style={{ backgroundColor: theme.primary }}
-                                onPress={handleSave}
-                                disabled={saving}
-                            >
-                                <Text className="text-white text-center font-bold text-base">
-                                    {saving ? 'Creating...' : 'Create Hostel'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
+                <ScrollView
+                    contentContainerStyle={styles.formScrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Hostel Name <Text style={{ color: 'red' }}>*</Text></Text>
+                        <TextInput
+                            placeholder="e.g. Sunrise Boys Hostel"
+                            style={styles.input}
+                            value={formData.name}
+                            onChangeText={(text) => setFormData({ ...formData, name: text })}
+                        />
                     </View>
-                </SafeAreaView>
 
-                {/* Full-Page Loader Overlay */}
-                {saving && (
-                    <View className="absolute inset-0 bg-black/50 items-center justify-center z-50">
-                        <View className="bg-white p-6 rounded-2xl items-center">
-                            <StayLoader />
-                            <Text className="text-gray-800 font-semibold mt-4">Creating Hostel...</Text>
-                        </View>
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Address <Text style={{ color: 'red' }}>*</Text></Text>
+                        <TextInput
+                            placeholder="Full address"
+                            style={[styles.input, styles.textArea]}
+                            value={formData.address}
+                            onChangeText={(text) => setFormData({ ...formData, address: text })}
+                            multiline
+                            numberOfLines={3}
+                        />
                     </View>
-                )}
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Contact Number <Text style={{ color: 'red' }}>*</Text></Text>
+                        <TextInput
+                            placeholder="Phone number"
+                            keyboardType="phone-pad"
+                            maxLength={10}
+                            style={styles.input}
+                            value={formData.contact}
+                            onChangeText={(text) => setFormData({ ...formData, contact: text.replace(/[^0-9]/g, '') })}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Total Capacity <Text style={{ color: 'red' }}>*</Text></Text>
+                        <TextInput
+                            placeholder="Total beds"
+                            keyboardType="numeric"
+                            style={styles.input}
+                            value={formData.capacity}
+                            onChangeText={(text) => setFormData({ ...formData, capacity: text.replace(/[^0-9]/g, '') })}
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.saveButtonMain, { backgroundColor: theme.primary }]}
+                        onPress={handleSave}
+                        disabled={saving}
+                    >
+                        {saving ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <Text style={styles.saveButtonTextMain}>Create Hostel</Text>
+                        )}
+                    </TouchableOpacity>
+                </ScrollView>
             </Animated.View>
         </View>
     );
@@ -261,75 +244,71 @@ export default function Hostels({ navigation }) {
             await setDoc(newHostelRef, newHostel);
             setHostels([...hostels, newHostel]);
             showToast('Hostel created successfully!', 'success');
-            setDrawerOpen(false);
         } catch (error) {
             console.error('Error adding hostel:', error);
-            showToast('Failed to create hostel', 'error');
+            throw error;
         }
     };
 
     return (
-        <View className="flex-1 bg-[#F5F7FA]">
-            {/* Header Background */}
-            <View className="absolute top-0 w-full h-[220px] rounded-b-[40px] z-0" style={{ backgroundColor: theme.primary }} />
+        <View style={styles.container}>
+            <View style={[styles.headerBg, { backgroundColor: theme.primary }]} />
 
-            <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-                {/* Header */}
-                <View className="px-6 pt-2 pb-6 z-10 w-full">
-                    <View className="flex-row justify-between items-center mb-6">
-                        <View className="flex-row items-center">
-                            <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
-                                <Ionicons name="arrow-back" size={28} color="white" />
+            <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+                <View style={styles.headerContent}>
+                    <View style={styles.topRow}>
+                        <View style={styles.topLeft}>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                                <Ionicons name="arrow-back" size={24} color="white" />
                             </TouchableOpacity>
-                            <Text className="text-white text-3xl font-bold">Hostels</Text>
+                            <Text style={styles.headerTitle}>Hostels</Text>
                         </View>
                         <ProfileHeader navigation={navigation} />
                     </View>
 
-                    <View className="bg-white rounded-2xl flex-row items-center px-4 py-3 shadow-lg shadow-teal-900/10">
+                    <View style={styles.searchContainer}>
                         <Ionicons name="search" size={20} color="#9ca3af" />
                         <TextInput
                             placeholder="Search hostels..."
                             placeholderTextColor="#9ca3af"
-                            className="flex-1 ml-3 text-gray-800 font-medium text-base"
+                            style={styles.searchInput}
                         />
                     </View>
                 </View>
 
-                {/* Content */}
                 <ScrollView
-                    className="flex-1 px-5"
+                    style={styles.mainScroll}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 130, paddingTop: 10 }}
+                    contentContainerStyle={styles.scrollContent}
                 >
-                    <View className="flex-row justify-between mb-4 items-end">
-                        <Text className="text-gray-900 font-bold text-lg">My Hostels</Text>
-                        <Text className="text-gray-400 text-xs font-bold bg-white px-2 py-1 rounded-lg border border-gray-100">{hostels.length} Total</Text>
+                    <View style={styles.listHeader}>
+                        <Text style={styles.listTitle}>My Hostels</Text>
+                        <View style={styles.countBadge}>
+                            <Text style={styles.countText}>{hostels.length} total</Text>
+                        </View>
                     </View>
 
                     {loading ? (
-                        <View className="h-60 justify-center items-center">
-                            <StayLoader />
-                            <Text className="text-center text-gray-400 mt-4">Loading hostels...</Text>
+                        <View style={styles.loaderCenter}>
+                            <ActivityIndicator size="large" color={theme.primary} />
                         </View>
                     ) : hostels.length === 0 ? (
-                        <View className="items-center mt-20">
-                            <Ionicons name="business-outline" size={64} color="#9ca3af" />
-                            <Text className="text-gray-500 text-lg mt-4">No hostels added yet</Text>
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="business-outline" size={64} color="#d1d5db" />
+                            <Text style={styles.emptyText}>No hostels added yet</Text>
                         </View>
                     ) : (
                         hostels.map(hostel => (
                             <HostelCard
                                 key={hostel.id}
                                 hostel={hostel}
-                                onPress={() => console.log('Hostel pressed:', hostel.name)}
+                                onPress={() => console.log('Pressed:', hostel.name)}
                             />
                         ))
                     )}
                 </ScrollView>
             </SafeAreaView>
 
-            {/* Add Drawer */}
             <AddHostelDrawer
                 isVisible={isDrawerOpen}
                 onClose={() => setDrawerOpen(false)}
@@ -337,18 +316,297 @@ export default function Hostels({ navigation }) {
                 theme={theme}
             />
 
-
-            {/* FAB - Hidden when drawer is open */}
-            {!isDrawerOpen && (
-                <TouchableOpacity
-                    onPress={() => setDrawerOpen(true)}
-                    className="absolute bottom-24 right-6 w-14 h-14 rounded-full items-center justify-center shadow-xl elevation-10 z-20"
-                    style={{ backgroundColor: theme.primary }}
-                    activeOpacity={0.9}
-                >
-                    <Ionicons name="add" size={32} color="white" />
-                </TouchableOpacity>
-            )}
+            <TouchableOpacity
+                style={[styles.fab, { backgroundColor: theme.primary }]}
+                onPress={() => setDrawerOpen(true)}
+                activeOpacity={0.8}
+            >
+                <Ionicons name="add" size={30} color="white" />
+            </TouchableOpacity>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+    },
+    headerBg: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 280,
+        borderBottomLeftRadius: 40,
+        borderBottomRightRadius: 40,
+    },
+    headerContent: {
+        paddingHorizontal: 24,
+        paddingTop: 40,
+        paddingBottom: 24,
+    },
+    topRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    topLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    backBtn: {
+        marginRight: 16,
+    },
+    headerTitle: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: 'white',
+    },
+    searchContainer: {
+        backgroundColor: 'white',
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: 12,
+        fontSize: 16,
+        color: '#1f2937',
+    },
+    mainScroll: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: 24,
+        paddingTop: 20, // Increased to avoid cut-off
+        paddingBottom: 100, // Sufficient bottom padding
+    },
+    listHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingVertical: 5, // Avoid clipping
+    },
+    listTitle: {
+        fontSize: 22, // Slightly larger as requested
+        fontWeight: '800',
+        color: '#111827',
+    },
+    countBadge: {
+        backgroundColor: 'white',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#f3f4f6',
+    },
+    countText: {
+        fontSize: 12,
+        color: '#6b7280',
+        fontWeight: 'bold',
+    },
+    hostelCard: {
+        backgroundColor: 'white',
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#f3f4f6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 16,
+    },
+    cardIconTitle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    iconBox: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    hostelName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    hostelAddress: {
+        fontSize: 12,
+        color: '#6b7280',
+        marginTop: 2,
+    },
+    statusBadge: {
+        backgroundColor: '#f0fdf4',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#15803d',
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#f9fafb',
+    },
+    statBox: {
+        marginRight: 32,
+    },
+    statLabel: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#9ca3af',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    statValue: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#374151',
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 30,
+        right: 24,
+        width: 56, // Reduced size
+        height: 56, // Reduced size
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 8,
+        zIndex: 1000,
+    },
+    drawerOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1000,
+    },
+    backdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    bottomSheetContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: height * 0.7, // 70% height
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 35,
+        borderTopRightRadius: 35,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 15,
+        elevation: 20,
+    },
+    drawerHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+    },
+    drawerTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#111827',
+    },
+    closeButton: {
+        padding: 8,
+        backgroundColor: '#f3f4f6',
+        borderRadius: 12,
+    },
+    formScrollContent: {
+        padding: 24,
+        paddingBottom: 50,
+    },
+    inputGroup: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#374151',
+        marginBottom: 8,
+    },
+    input: {
+        backgroundColor: '#f9fafb',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        fontSize: 16,
+        color: '#111827',
+    },
+    textArea: {
+        height: 100,
+        textAlignVertical: 'top',
+    },
+    saveButtonMain: {
+        marginTop: 20,
+        paddingVertical: 18,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    saveButtonTextMain: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '800',
+    },
+    loaderCenter: {
+        height: 200,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: 60,
+    },
+    emptyText: {
+        marginTop: 16,
+        fontSize: 18,
+        color: '#9ca3af',
+    },
+});

@@ -60,7 +60,7 @@ export default function AppInput({
                     <Ionicons
                         name={icon}
                         size={20}
-                        color={isFocused ? theme.primary : COLORS.gray400}
+                        color={isFocused ? theme.primary : COLORS.gray500}
                         style={styles.icon}
                     />
                 )}
@@ -74,7 +74,7 @@ export default function AppInput({
                     value={value}
                     onChangeText={onChangeText}
                     placeholder={placeholder}
-                    placeholderTextColor={COLORS.gray400}
+                    placeholderTextColor={COLORS.gray500}
                     secureTextEntry={isPassword && !isPasswordVisible}
                     keyboardType={keyboardType}
                     autoCapitalize={autoCapitalize}
