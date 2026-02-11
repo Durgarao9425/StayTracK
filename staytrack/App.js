@@ -1,5 +1,6 @@
 import React from 'react';
 import './global.css';
+import './src/i18n'; // Initialize i18n
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';

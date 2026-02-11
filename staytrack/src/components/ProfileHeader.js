@@ -46,6 +46,14 @@ export default function ProfileHeader({ navigation }) {
 
     return (
         <View style={styles.container}>
+            <TouchableOpacity
+                onPress={() => navigation.navigate("Notifications")}
+                style={{ marginRight: 12 }}
+                activeOpacity={0.7}
+            >
+                <Ionicons name="notifications-outline" size={26} color="white" />
+            </TouchableOpacity>
+
             {/* Profile Picture Button */}
             <TouchableOpacity
                 onPress={() => setMenuVisible(true)}
@@ -198,6 +206,8 @@ export default function ProfileHeader({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         zIndex: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     avatarContainer: {
         position: 'relative',

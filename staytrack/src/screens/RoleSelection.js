@@ -1,7 +1,9 @@
 import React from "react";
+import { useTranslation } from 'react-i18next';
 import { View, Text, TouchableOpacity } from "react-native";
 
 export default function RoleSelection({ navigation }) {
+    const { t } = useTranslation();
     return (
         <View className="flex-1 bg-[#00A8A8] justify-center items-center">
 
@@ -28,7 +30,7 @@ export default function RoleSelection({ navigation }) {
                 </Text>
 
                 <Text className="text-center text-gray-500 text-base mb-10">
-                    Choose Your Role
+                    {t('roleSelection.chooseRole')}
                 </Text>
 
                 {/* OWNER BUTTON */}
@@ -37,7 +39,7 @@ export default function RoleSelection({ navigation }) {
                     className="bg-[#00A8A8] py-4 rounded-2xl shadow-md mb-6"
                 >
                     <Text className="text-white text-center text-lg font-semibold">
-                        Owner
+                        {t('common.owner')}
                     </Text>
                 </TouchableOpacity>
 
@@ -47,7 +49,7 @@ export default function RoleSelection({ navigation }) {
                     className="bg-[#00A8A8] py-4 rounded-2xl shadow-md"
                 >
                     <Text className="text-white text-center text-lg font-semibold">
-                        Student
+                        {t('common.student')}
                     </Text>
                 </TouchableOpacity>
             </View>

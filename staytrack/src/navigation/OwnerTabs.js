@@ -20,29 +20,8 @@ export default function OwnerTabs() {
             screenOptions={({ route }) => ({
                 headerShown: false,
                 tabBarShowLabel: false,
-                tabBarIcon: ({ focused, color }) => {
-                    let iconName;
-                    if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-                    else if (route.name === 'Rooms') iconName = focused ? 'bed' : 'bed-outline';
-                    else if (route.name === 'Students') iconName = focused ? 'people' : 'people-outline';
-                    else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
+                tabBarStyle: { display: 'none' }, // Hide default tab bar
 
-                    return (
-                        <View style={{ marginTop: Platform.OS === 'ios' ? 0 : -5 }}>
-                            <Ionicons name={iconName} size={34} color={color} />
-                        </View>
-                    );
-                },
-                tabBarActiveTintColor: theme.primary,
-                tabBarInactiveTintColor: COLORS.gray600,
-                tabBarStyle: {
-                    height: Platform.OS === 'ios' ? 85 : 75,
-                    backgroundColor: COLORS.white,
-                    borderTopWidth: 0,
-                    paddingTop: 0,
-                    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-                    ...SHADOWS.medium,
-                },
             })}
         >
             <Tab.Screen

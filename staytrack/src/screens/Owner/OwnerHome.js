@@ -4,57 +4,62 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Statu
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import BottomTabNavigator from './BottomTabNavigator';
 import ProfileHeader from '../../components/ProfileHeader';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase';
 import DonutChart from '../../components/DonutChart';
+import { COLORS, FONTS, SPACING, RADII, SHADOWS } from '../../theme/theme';
 
 const { width } = Dimensions.get('window');
+const CARD_PADDING = 20;
+const CARD_GAP = 12;
+const CARD_WIDTH = (width - (CARD_PADDING * 2) - CARD_GAP) / 2;
 
-// Responsive calculations - COMPACT VERSION
-const SCREEN_PADDING = 16;
-const CARD_GAP = 16;
-const CARD_WIDTH = (width - (SCREEN_PADDING * 2) - CARD_GAP) / 2;
-
-// Compact Grid Menu Item Component
-const GridMenuItem = ({ title, icon, color, navigation, screenName, renderChart, stats, theme }) => (
+// Metric Card Component
+const MetricCard = ({ title, icon, color, navigation, screenName, stats, renderChart }) => (
     <TouchableOpacity
         onPress={() => navigation.navigate(screenName)}
-        style={[styles.gridMenuItem, { width: CARD_WIDTH }]}
+        style={[styles.metricCard, { width: CARD_WIDTH }]}
         activeOpacity={0.7}
     >
-        {/* Icon and Chart Combined */}
-        <View style={styles.cardTop}>
-            <View style={[styles.iconBadge, { backgroundColor: color.bg }]}>
-                <Ionicons name={icon} size={20} color={color.text} />
+        <View style={styles.cardHeader}>
+            <View style={[styles.iconContainer, { backgroundColor: color.light }]}>
+                <Ionicons name={icon} size={22} color={color.main} />
             </View>
             {renderChart && (
-                <View style={styles.miniChart}>
+                <View style={styles.chartContainer}>
                     {renderChart()}
                 </View>
             )}
         </View>
 
-        {/* Title and Stats */}
-        <View style={styles.cardBottom}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
-            {stats && (
-                <Text style={styles.cardStats} numberOfLines={1}>{stats}</Text>
-            )}
-        </View>
+        <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
+        {stats && <Text style={styles.cardStats} numberOfLines={1}>{stats}</Text>}
     </TouchableOpacity>
 );
 
-// Simple Activity Chip Component
-const ActivityChip = ({ icon, text, color, onPress }) => (
+// Quick Action Chip
+const QuickActionChip = ({ icon, label, color, onPress }) => (
     <TouchableOpacity
         onPress={onPress}
-        style={[styles.activityChip, { backgroundColor: color.bg }]}
+        style={[styles.quickChip, { backgroundColor: color.light }]}
         activeOpacity={0.7}
     >
-        <Ionicons name={icon} size={16} color={color.text} />
-        <Text style={[styles.chipText, { color: color.text }]} numberOfLines={1}>{text}</Text>
+        <Ionicons name={icon} size={18} color={color.main} />
+        <Text style={[styles.chipLabel, { color: color.main }]}>{label}</Text>
     </TouchableOpacity>
+);
+
+// Summary Row Component
+const SummaryRow = ({ icon, label, value, color }) => (
+    <View style={styles.summaryRow}>
+        <View style={styles.summaryLeft}>
+            <View style={[styles.summaryDot, { backgroundColor: color }]} />
+            <Text style={styles.summaryLabel}>{label}</Text>
+        </View>
+        <Text style={styles.summaryValue}>{value}</Text>
+    </View>
 );
 
 export default function OwnerHome({ navigation }) {
@@ -99,7 +104,6 @@ export default function OwnerHome({ navigation }) {
             const userId = auth.currentUser?.uid;
             if (!userId) return;
 
-            // 1. Fetch Rooms Data
             const roomsQuery = query(collection(db, 'rooms'), where("userId", "==", userId));
             const roomsSnap = await getDocs(roomsQuery);
             let totalCapacity = 0;
@@ -118,13 +122,11 @@ export default function OwnerHome({ navigation }) {
                 if (occupied >= capacity) fullRooms++;
             });
 
-            // 2. Fetch Students
             const studentsQuery = query(collection(db, 'students'), where("userId", "==", userId));
             const studentsSnap = await getDocs(studentsQuery);
             const allStudents = studentsSnap.docs.map(d => d.data());
             const activeStudentsCount = allStudents.filter(s => s.status !== 'Inactive').length;
 
-            // 3. Fetch Payments
             const date = new Date();
             const currentMonth = `${date.toLocaleString("en-US", { month: "long" })} ${date.getFullYear()}`;
             const paymentsQuery = query(collection(db, 'payments'), where("month", "==", currentMonth), where("userId", "==", userId));
@@ -156,13 +158,13 @@ export default function OwnerHome({ navigation }) {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-            {/* Compact Header Background */}
-            <View style={[styles.headerBackground, { backgroundColor: theme.primary }]} />
+            {/* Header Background */}
+            <View style={styles.headerBackground} />
 
             <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-                {/* Compact Header */}
+                {/* Header */}
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <View style={styles.headerTextContainer}>
@@ -181,147 +183,136 @@ export default function OwnerHome({ navigation }) {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                 >
-                    {/* Compact Stats Grid */}
-                    <View style={styles.gridContainer}>
-                        {/* ROOMS */}
-                        <GridMenuItem
+                    {/* Metrics Grid */}
+                    <View style={styles.metricsGrid}>
+                        <MetricCard
                             title="Rooms"
                             icon="bed-outline"
-                            color={{ bg: '#EFF6FF', text: '#2563EB' }}
+                            color={{ main: '#3B82F6', light: '#DBEAFE' }}
                             navigation={navigation}
                             screenName="Rooms"
-                            theme={theme}
-                            stats={`${stats.rooms.full}/${stats.rooms.total} Full`}
+                            stats={`${stats.rooms.full} of ${stats.rooms.total} Full`}
                             renderChart={() => (
                                 <DonutChart
                                     percentage={stats.rooms.percentage}
-                                    radius={22}
+                                    radius={24}
                                     strokeWidth={4}
-                                    color="#3b82f6"
+                                    color="#3B82F6"
                                     bgColor="#DBEAFE"
                                     centerValue={`${Math.round(stats.rooms.percentage)}%`}
                                 />
                             )}
                         />
 
-                        {/* STUDENTS */}
-                        <GridMenuItem
+                        <MetricCard
                             title="Students"
                             icon="people-outline"
-                            color={{ bg: '#F0FDF4', text: '#059669' }}
+                            color={{ main: '#10B981', light: '#D1FAE5' }}
                             navigation={navigation}
                             screenName="Students"
-                            theme={theme}
                             stats={`${stats.students.total} Active`}
                             renderChart={() => (
                                 <DonutChart
                                     percentage={stats.students.percentage}
-                                    radius={22}
+                                    radius={24}
                                     strokeWidth={4}
-                                    color="#10b981"
+                                    color="#10B981"
                                     bgColor="#D1FAE5"
                                     centerValue={stats.students.total.toString()}
                                 />
                             )}
                         />
 
-                        {/* FEES */}
-                        <GridMenuItem
+                        <MetricCard
                             title="Payments"
                             icon="wallet-outline"
-                            color={{ bg: '#FAF5FF', text: '#7C3AED' }}
+                            color={{ main: '#8B5CF6', light: '#EDE9FE' }}
                             navigation={navigation}
                             screenName="Payments"
-                            theme={theme}
-                            stats={`${stats.fees.collected}/${stats.fees.total} Paid`}
+                            stats={`${stats.fees.collected} of ${stats.fees.total} Paid`}
                             renderChart={() => (
                                 <DonutChart
                                     percentage={stats.fees.percentage}
-                                    radius={22}
+                                    radius={24}
                                     strokeWidth={4}
-                                    color="#8b5cf6"
-                                    bgColor="#F3E8FF"
+                                    color="#8B5CF6"
+                                    bgColor="#EDE9FE"
                                     centerValue={`${Math.round(stats.fees.percentage)}%`}
                                 />
                             )}
                         />
 
-                        {/* MESS MENU */}
-                        <GridMenuItem
+                        <MetricCard
                             title="Mess Menu"
                             icon="restaurant-outline"
-                            color={{ bg: '#FFF7ED', text: '#EA580C' }}
+                            color={{ main: '#F59E0B', light: '#FEF3C7' }}
                             navigation={navigation}
                             screenName="MessManager"
-                            theme={theme}
                             stats="View Schedule"
                             renderChart={() => (
-                                <View style={styles.messIcon}>
-                                    <Ionicons name="calendar" size={24} color="#ea580c" />
+                                <View style={styles.messIconContainer}>
+                                    <Ionicons name="calendar-outline" size={28} color="#F59E0B" />
                                 </View>
                             )}
                         />
                     </View>
 
-                    {/* Quick Actions - Simple Chips */}
-                    <View style={styles.quickActionsSection}>
+                    {/* Quick Actions */}
+                    <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Quick Actions</Text>
-                        <View style={styles.chipsContainer}>
-                            <ActivityChip
-                                icon="add-circle"
-                                text="Add Student"
-                                color={{ bg: '#EFF6FF', text: '#2563EB' }}
+                        <View style={styles.quickActionsContainer}>
+                            <QuickActionChip
+                                icon="add-circle-outline"
+                                label="Add Student"
+                                color={{ main: '#3B82F6', light: '#DBEAFE' }}
                                 onPress={() => navigation.navigate('Students')}
                             />
-                            <ActivityChip
-                                icon="notifications"
-                                text="3 Pending"
-                                color={{ bg: '#FEF2F2', text: '#DC2626' }}
+                            <QuickActionChip
+                                icon="notifications-outline"
+                                label="Pending (3)"
+                                color={{ main: '#EF4444', light: '#FEE2E2' }}
+                                onPress={() => { }}
                             />
-                            <ActivityChip
-                                icon="cash"
-                                text="Collect Fee"
-                                color={{ bg: '#F0FDF4', text: '#059669' }}
+                            <QuickActionChip
+                                icon="cash-outline"
+                                label="Collect Fee"
+                                color={{ main: '#10B981', light: '#D1FAE5' }}
+                                onPress={() => navigation.navigate('Payments')}
                             />
                         </View>
                     </View>
 
-                    {/* Today's Summary - Simple List */}
-                    <View style={styles.summarySection}>
+                    {/* Today's Summary */}
+                    <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Today's Summary</Text>
-
                         <View style={styles.summaryCard}>
-                            <View style={styles.summaryRow}>
-                                <View style={styles.summaryLeft}>
-                                    <View style={[styles.summaryDot, { backgroundColor: '#10b981' }]} />
-                                    <Text style={styles.summaryLabel}>New Admissions</Text>
-                                </View>
-                                <Text style={styles.summaryValue}>2</Text>
-                            </View>
-
+                            <SummaryRow
+                                icon="person-add-outline"
+                                label="New Admissions"
+                                value="2"
+                                color="#10B981"
+                            />
                             <View style={styles.summaryDivider} />
-
-                            <View style={styles.summaryRow}>
-                                <View style={styles.summaryLeft}>
-                                    <View style={[styles.summaryDot, { backgroundColor: '#f59e0b' }]} />
-                                    <Text style={styles.summaryLabel}>Payments Received</Text>
-                                </View>
-                                <Text style={styles.summaryValue}>₹{stats.fees.collected * 5000}</Text>
-                            </View>
-
+                            <SummaryRow
+                                icon="wallet-outline"
+                                label="Payments Received"
+                                value={`₹${stats.fees.collected * 5000}`}
+                                color="#F59E0B"
+                            />
                             <View style={styles.summaryDivider} />
-
-                            <View style={styles.summaryRow}>
-                                <View style={styles.summaryLeft}>
-                                    <View style={[styles.summaryDot, { backgroundColor: '#ef4444' }]} />
-                                    <Text style={styles.summaryLabel}>Pending Issues</Text>
-                                </View>
-                                <Text style={styles.summaryValue}>1</Text>
-                            </View>
+                            <SummaryRow
+                                icon="alert-circle-outline"
+                                label="Pending Issues"
+                                value="1"
+                                color="#EF4444"
+                            />
                         </View>
                     </View>
                 </ScrollView>
             </SafeAreaView>
+
+            {/* Bottom Navigation */}
+            <BottomTabNavigator navigation={navigation} activeRoute="Home" />
         </View>
     );
 }
@@ -329,22 +320,23 @@ export default function OwnerHome({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFBFC',
+        backgroundColor: COLORS.background,
     },
     headerBackground: {
         position: 'absolute',
         top: 0,
         width: '100%',
-        height: Platform.OS === 'ios' ? 220 : 200,
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
+        height: Platform.OS === 'ios' ? 200 : 180,
+        backgroundColor: COLORS.primary,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
     },
     safeArea: {
         flex: 1,
     },
     header: {
-        paddingHorizontal: SCREEN_PADDING,
-        paddingTop: Platform.OS === 'ios' ? 20 : 32,
+        paddingHorizontal: CARD_PADDING,
+        paddingTop: Platform.OS === 'ios' ? 16 : 24,
         paddingBottom: 20,
     },
     headerContent: {
@@ -358,139 +350,123 @@ const styles = StyleSheet.create({
     },
     welcomeText: {
         color: 'rgba(255, 255, 255, 0.8)',
-        fontSize: 13,
-        fontWeight: '500',
+        fontSize: 14,
+        fontFamily: FONTS.medium,
     },
     userName: {
-        color: '#FFFFFF',
-        fontSize: 24,
-        fontWeight: '700',
-        marginTop: 2,
+        color: COLORS.white,
+        fontSize: 26,
+        fontFamily: FONTS.bold,
+        marginTop: 4,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: SCREEN_PADDING,
-        paddingBottom: Platform.OS === 'ios' ? 120 : 100,
-        paddingTop: 30,
+        paddingHorizontal: CARD_PADDING,
+        paddingBottom: Platform.OS === 'ios' ? 100 : 90,
+        paddingTop: 24,
     },
 
-    // COMPACT GRID STYLES
-    gridContainer: {
+    // Metrics Grid
+    metricsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
         marginBottom: 24,
     },
-    gridMenuItem: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 18,
+    metricCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: RADII.l,
         padding: 16,
-        minHeight: 155,
         marginBottom: CARD_GAP,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 2,
-        borderWidth: 1,
-        borderColor: '#F0F1F3',
+        minHeight: 140,
+        ...SHADOWS.md,
     },
-    cardTop: {
+    cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 12,
     },
-    iconBadge: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+    iconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: RADII.m,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    chartContainer: {
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    miniChart: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cardBottom: {
-        marginTop: 8,
     },
     cardTitle: {
-        fontWeight: '700',
-        color: '#1F2937',
-        fontSize: 15,
+        fontFamily: FONTS.bold,
+        fontSize: 16,
+        color: COLORS.textPrimary,
         marginBottom: 4,
     },
     cardStats: {
-        color: '#6B7280',
-        fontWeight: '500',
-        fontSize: 11,
+        fontFamily: FONTS.medium,
+        fontSize: 13,
+        color: COLORS.textSecondary,
     },
-    messIcon: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        alignItems: 'center',
+    messIconContainer: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#FEF3C7',
         justifyContent: 'center',
-        backgroundColor: '#FFEDD5',
+        alignItems: 'center',
     },
 
-    // QUICK ACTIONS - CHIP STYLE
-    quickActionsSection: {
+    // Sections
+    section: {
         marginBottom: 24,
     },
     sectionTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1F2937',
+        fontFamily: FONTS.bold,
+        fontSize: 18,
+        color: COLORS.textPrimary,
         marginBottom: 12,
     },
-    chipsContainer: {
+
+    // Quick Actions
+    quickActionsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: 10,
     },
-    activityChip: {
+    quickChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: 20,
-        gap: 6,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: RADII.m,
+        gap: 8,
     },
-    chipText: {
-        fontSize: 13,
-        fontWeight: '600',
+    chipLabel: {
+        fontFamily: FONTS.semibold,
+        fontSize: 14,
     },
 
-    // SUMMARY SECTION - SIMPLE LIST
-    summarySection: {
-        marginBottom: 20,
-    },
+    // Summary Card
     summaryCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
+        backgroundColor: COLORS.white,
+        borderRadius: RADII.l,
         padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: '#F0F1F3',
+        ...SHADOWS.md,
     },
     summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 14,
+        paddingVertical: 12,
     },
     summaryLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
     },
     summaryDot: {
         width: 8,
@@ -498,17 +474,17 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     summaryLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#4B5563',
+        fontFamily: FONTS.medium,
+        fontSize: 15,
+        color: COLORS.textSecondary,
     },
     summaryValue: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#1F2937',
+        fontFamily: FONTS.bold,
+        fontSize: 16,
+        color: COLORS.textPrimary,
     },
     summaryDivider: {
         height: 1,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: COLORS.border,
     },
 });

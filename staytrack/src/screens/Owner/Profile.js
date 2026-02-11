@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import {
     View,
     Text,
@@ -19,12 +20,19 @@ import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { uploadFile } from "../../services/storage";
 import showToast from "../../utils/toast";
 
-// -------------------------------------------------------
-//     FIXED PROFILE SCREEN → MATCHES ROOMS + STUDENTS
-// -------------------------------------------------------
+import BottomTabNavigator from './BottomTabNavigator';
 
 export default function Profile({ navigation }) {
     const { theme } = useTheme();
+    const { t, i18n } = useTranslation();
+
+    const changeLanguage = () => {
+        Alert.alert(t('common.selectLanguage'), '', [
+            { text: t('common.english'), onPress: () => i18n.changeLanguage('en') },
+            { text: t('common.telugu'), onPress: () => i18n.changeLanguage('te') },
+            { text: t('common.cancel'), style: 'cancel' }
+        ]);
+    };
 
     const [profileImage, setProfileImage] = useState(null);
     const [userData, setUserData] = useState(null);
@@ -150,7 +158,7 @@ export default function Profile({ navigation }) {
                 {/* HEADER */}
                 <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
                     <Text style={{ color: "#fff", fontSize: 32, fontWeight: "800" }}>
-                        Profile000
+                        {t('common.profile')}
                     </Text>
                 </View>
 
@@ -216,7 +224,7 @@ export default function Profile({ navigation }) {
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     style={{ marginTop: 20 }}
-                    contentContainerStyle={{ paddingBottom: 140 }}
+                    contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 90 }}
                 >
                     {/* OVERVIEW */}
                     <View style={{ paddingHorizontal: 20 }}>
@@ -228,7 +236,7 @@ export default function Profile({ navigation }) {
                                 marginBottom: 16,
                             }}
                         >
-                            Overview
+                            {t('common.profile')}
                         </Text>
 
                         {/* 4 Quick Cards */}
@@ -238,7 +246,7 @@ export default function Profile({ navigation }) {
                                 onPress={() => navigation.navigate("Hostels")}
                             >
                                 <Ionicons name="business" size={26} color="#3b82f6" />
-                                <Text style={quickTitle}>Hostels</Text>
+                                <Text style={quickTitle}>{t('common.hostels')}</Text>
                                 <View style={tag("#3b82f6")}>
                                     <Text style={tagText("#3b82f6")}>3 ACTIVE</Text>
                                 </View>
@@ -249,7 +257,7 @@ export default function Profile({ navigation }) {
                                 onPress={() => navigation.navigate("Payments")}
                             >
                                 <Ionicons name="cash" size={26} color="#14b8a6" />
-                                <Text style={quickTitle}>Fees</Text>
+                                <Text style={quickTitle}>{t('common.payments')}</Text>
                                 <View style={tag("#14b8a6")}>
                                     <Text style={tagText("#14b8a6")}>4 PENDING</Text>
                                 </View>
@@ -260,7 +268,7 @@ export default function Profile({ navigation }) {
                                 onPress={() => navigation.navigate("Expenses")}
                             >
                                 <Ionicons name="wallet" size={26} color="#6366f1" />
-                                <Text style={quickTitle}>Expenses</Text>
+                                <Text style={quickTitle}>{t('common.expenses')}</Text>
                                 <View style={tag("#6366f1")}>
                                     <Text style={tagText("#6366f1")}>THIS MONTH</Text>
                                 </View>
@@ -291,7 +299,12 @@ export default function Profile({ navigation }) {
                         <Text style={sectionLabel}>Settings</Text>
 
                         <View style={blockCard}>
-                            <MenuItem icon="language" label="Language" right="English" />
+                            <MenuItem
+                                icon="language"
+                                label={t('common.changeLanguage')}
+                                right={i18n.language === 'te' ? t('common.telugu') : t('common.english')}
+                                onPress={changeLanguage}
+                            />
                             <MenuItem
                                 icon="log-out"
                                 label="Logout"
@@ -315,6 +328,9 @@ export default function Profile({ navigation }) {
                     </View>
                 </ScrollView>
             </SafeAreaView>
+
+            {/* MODERN BOTTOM NAVIGATION */}
+            <BottomTabNavigator navigation={navigation} activeRoute="Profile" />
         </View>
     );
 }
@@ -407,3 +423,4 @@ const MenuItem = ({ icon, label, right, border = true, onPress, color }) => (
         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
     </TouchableOpacity>
 );
+

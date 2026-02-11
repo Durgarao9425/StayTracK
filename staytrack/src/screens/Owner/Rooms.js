@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import BottomTabNavigator from './BottomTabNavigator';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Animated, Dimensions, Keyboard, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,32 +16,36 @@ import { COLORS, FONTS, SPACING, SHADOWS, RADII } from '../../theme/theme';
 const { width } = Dimensions.get('window');
 
 // Room Card Component
-const RoomItem = ({ room, onPress }) => (
-    <TouchableOpacity
-        onPress={onPress}
-        activeOpacity={0.9}
-        className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex-row justify-between items-center"
-    >
-        <View className="flex-row items-center">
-            <View className="w-14 h-14 rounded-xl justify-center items-center mr-4" style={{ backgroundColor: room.color.bg }}>
-                <Ionicons name="bed" size={26} color={room.color.text} />
+const RoomItem = ({ room, onPress }) => {
+    const { t } = useTranslation();
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.9}
+            className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex-row justify-between items-center"
+        >
+            <View className="flex-row items-center">
+                <View className="w-14 h-14 rounded-xl justify-center items-center mr-4" style={{ backgroundColor: room.color.bg }}>
+                    <Ionicons name="bed" size={26} color={room.color.text} />
+                </View>
+                <View>
+                    <Text className="text-lg font-bold text-gray-900">{t('common.roomNumber')} {room.number}</Text>
+                    <Text className="text-gray-500 text-sm">{room.hostelName}</Text>
+                    <Text className="text-gray-400 text-xs font-medium mt-1">
+                        {t('rooms.capacity')}: {room.occupied}/{room.capacity}
+                    </Text>
+                </View>
             </View>
-            <View>
-                <Text className="text-lg font-bold text-gray-900">Room {room.number}</Text>
-                <Text className="text-gray-500 text-sm">{room.hostelName}</Text>
-                <Text className="text-gray-400 text-xs font-medium mt-1">
-                    Capacity: {room.occupied}/{room.capacity}
-                </Text>
+            <View className={`px-3 py-1 rounded-full`} style={{ backgroundColor: room.color.bg }}>
+                <Text className="text-xs font-bold" style={{ color: room.color.text }}>{room.status}</Text>
             </View>
-        </View>
-        <View className={`px-3 py-1 rounded-full`} style={{ backgroundColor: room.color.bg }}>
-            <Text className="text-xs font-bold" style={{ color: room.color.text }}>{room.status}</Text>
-        </View>
-    </TouchableOpacity>
-);
+        </TouchableOpacity>
+    );
+};
 
 // Drawer Modal Component
 const AddRoomDrawer = ({ isVisible, onClose, onSave, hostels, theme, loadingHostels }) => {
+    const { t } = useTranslation();
     const slideAnim = useRef(new Animated.Value(width)).current;
     const [formData, setFormData] = useState({ number: '', floor: '', capacity: '' });
     const [selectedHostel, setSelectedHostel] = useState(null);
@@ -89,7 +95,7 @@ const AddRoomDrawer = ({ isVisible, onClose, onSave, hostels, theme, loadingHost
                 <View style={styles.drawerContent}>
                     {/* Header */}
                     <View style={styles.drawerHeader}>
-                        <Text style={styles.drawerTitle}>Add Room</Text>
+                        <Text style={styles.drawerTitle}>{t('rooms.addRoom')}</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                             <Ionicons name="close" size={24} color={COLORS.gray800} />
                         </TouchableOpacity>
@@ -98,15 +104,15 @@ const AddRoomDrawer = ({ isVisible, onClose, onSave, hostels, theme, loadingHost
                     {/* Form */}
                     <ScrollView contentContainerStyle={styles.formContainer}>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Select Hostel <Text style={styles.required}>*</Text></Text>
+                            <Text style={styles.label}>{t('rooms.selectHostel')} <Text style={styles.required}>*</Text></Text>
                             {loadingHostels ? (
                                 <View className="py-2 flex-row items-center">
                                     <StayLoader size="small" />
-                                    <Text className="ml-2 text-gray-400 text-xs">Fetching hostels...</Text>
+                                    <Text className="ml-2 text-gray-400 text-xs">{t('rooms.fetchingHostels')}</Text>
                                 </View>
                             ) : hostels.length === 0 ? (
                                 <View className="p-3 bg-red-50 rounded-xl border border-red-100">
-                                    <Text className="text-red-500 font-bold text-xs">No hostels are available. Please add a hostel clearly</Text>
+                                    <Text className="text-red-500 font-bold text-xs">{t('rooms.noHostels')}</Text>
                                 </View>
                             ) : (
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
@@ -130,7 +136,7 @@ const AddRoomDrawer = ({ isVisible, onClose, onSave, hostels, theme, loadingHost
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Room Number <Text style={styles.required}>*</Text></Text>
+                            <Text style={styles.label}>{t('rooms.roomNumber')} <Text style={styles.required}>*</Text></Text>
                             <TextInput
                                 placeholder="e.g. A-101"
                                 style={styles.input}
@@ -139,18 +145,18 @@ const AddRoomDrawer = ({ isVisible, onClose, onSave, hostels, theme, loadingHost
                             />
                         </View>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Floor</Text>
+                            <Text style={styles.label}>{t('rooms.floor')}</Text>
                             <TextInput
-                                placeholder="Ground Floor"
+                                placeholder={t('rooms.groundFloor')}
                                 style={styles.input}
                                 value={formData.floor}
                                 onChangeText={(text) => setFormData({ ...formData, floor: text })}
                             />
                         </View>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Capacity <Text style={styles.required}>*</Text></Text>
+                            <Text style={styles.label}>{t('rooms.capacity')} <Text style={styles.required}>*</Text></Text>
                             <TextInput
-                                placeholder="Number of beds"
+                                placeholder={t('rooms.numberOfBeds')}
                                 keyboardType="numeric"
                                 style={styles.input}
                                 value={formData.capacity}
@@ -163,7 +169,7 @@ const AddRoomDrawer = ({ isVisible, onClose, onSave, hostels, theme, loadingHost
                             onPress={handleSave}
                             disabled={saving}
                         >
-                            <Text style={styles.saveButtonText}>{saving ? 'Creating...' : 'Create Room'}</Text>
+                            <Text style={styles.saveButtonText}>{saving ? t('rooms.creating') : t('rooms.createRoom')}</Text>
                         </TouchableOpacity>
                     </ScrollView>
                 </View>
@@ -174,6 +180,7 @@ const AddRoomDrawer = ({ isVisible, onClose, onSave, hostels, theme, loadingHost
 
 // Details Drawer
 const RoomDetailsDrawer = ({ isVisible, onClose, room }) => {
+    const { t } = useTranslation();
     const slideAnim = useRef(new Animated.Value(width)).current;
     const [shouldRender, setShouldRender] = useState(isVisible);
 
@@ -196,7 +203,7 @@ const RoomDetailsDrawer = ({ isVisible, onClose, room }) => {
             <Animated.View style={[styles.drawerContainer, { transform: [{ translateX: slideAnim }] }]}>
                 <View style={styles.drawerContent}>
                     <View style={styles.drawerHeader}>
-                        <Text style={styles.drawerTitle}>Room Details</Text>
+                        <Text style={styles.drawerTitle}>{t('rooms.roomDetails')}</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                             <Ionicons name="close" size={24} color={COLORS.gray800} />
                         </TouchableOpacity>
@@ -206,7 +213,7 @@ const RoomDetailsDrawer = ({ isVisible, onClose, room }) => {
                         <ScrollView contentContainerStyle={styles.detailsContent}>
                             <View style={[styles.detailsBadge, { backgroundColor: room.color.bg }]}>
                                 <Ionicons name="bed" size={64} color={room.color.text} />
-                                <Text style={styles.detailsRoomNumber}>Room {room.number}</Text>
+                                <Text style={styles.detailsRoomNumber}>{t('common.roomNumber')} {room.number}</Text>
                                 <View style={styles.detailsStatusBadge}>
                                     <Text style={styles.detailsStatusText}>{room.status}</Text>
                                 </View>
@@ -214,15 +221,15 @@ const RoomDetailsDrawer = ({ isVisible, onClose, room }) => {
 
                             <View style={styles.statsGrid}>
                                 <View style={styles.statCard}>
-                                    <Text style={styles.statLabel}>CAPACITY</Text>
-                                    <Text style={styles.statValue}>{room.capacity} Beds</Text>
+                                    <Text style={styles.statLabel}>{t('rooms.capacity').toUpperCase()}</Text>
+                                    <Text style={styles.statValue}>{room.capacity} {t('rooms.beds')}</Text>
                                 </View>
                                 <View style={styles.statCard}>
-                                    <Text style={styles.statLabel}>OCCUPIED</Text>
-                                    <Text style={styles.statValue}>{room.occupied} Students</Text>
+                                    <Text style={styles.statLabel}>{t('common.occupied').toUpperCase()}</Text>
+                                    <Text style={styles.statValue}>{room.occupied} {t('rooms.occupants')}</Text>
                                 </View>
                                 <View style={styles.statCard}>
-                                    <Text style={styles.statLabel}>FLOOR</Text>
+                                    <Text style={styles.statLabel}>{t('rooms.floor').toUpperCase()}</Text>
                                     <Text style={styles.statValue}>{room.floor || 'Ground'}</Text>
                                 </View>
                             </View>
@@ -231,7 +238,7 @@ const RoomDetailsDrawer = ({ isVisible, onClose, room }) => {
                                 style={styles.editButton}
                                 onPress={() => showToast('Edit feature coming soon!', 'warning')}
                             >
-                                <Text style={styles.editButtonText}>Edit Room Details</Text>
+                                <Text style={styles.editButtonText}>{t('rooms.editRoomDetails')}</Text>
                             </TouchableOpacity>
                         </ScrollView>
                     )}
@@ -241,7 +248,10 @@ const RoomDetailsDrawer = ({ isVisible, onClose, room }) => {
     );
 };
 
+
+
 export default function Rooms({ navigation }) {
+    const { t } = useTranslation();
     const [isDrawerOpen, setDrawerOpen] = useState(false);
     const [rooms, setRooms] = useState([]);
     const [hostels, setHostels] = useState([]);
@@ -352,16 +362,16 @@ export default function Rooms({ navigation }) {
                 <View className="px-5 pt-8 pb-6 z-10 w-full">
                     <View className="flex-row justify-between items-center mb-6">
                         <View className="flex-1 mr-4">
-                            <Text className="text-white text-3xl font-bold">Rooms</Text>
+                            <Text className="text-white text-3xl font-bold">{t('rooms.title')}</Text>
                         </View>
                         <ProfileHeader navigation={navigation} />
                     </View>
 
                     {/* All Rooms Info Moved up */}
                     <View className="flex-row justify-between mb-4 items-end">
-                        <Text className="text-white font-bold text-lg">All Rooms</Text>
+                        <Text className="text-white font-bold text-lg">{t('rooms.allRooms')}</Text>
                         <View className="bg-white/20 px-3 py-1 rounded-lg">
-                            <Text className="text-white text-xs font-bold">{rooms.length} Total</Text>
+                            <Text className="text-white text-xs font-bold">{rooms.length} {t('rooms.total')}</Text>
                         </View>
                     </View>
 
@@ -369,7 +379,7 @@ export default function Rooms({ navigation }) {
                     <View className="bg-white rounded-2xl flex-row items-center px-4 py-3 shadow-sm border border-gray-50">
                         <Ionicons name="search" size={20} color="#6b7280" />
                         <TextInput
-                            placeholder="Search rooms..."
+                            placeholder={t('rooms.searchPlaceholder')}
                             placeholderTextColor="#9ca3af"
                             className="flex-1 ml-3 text-gray-800 font-medium text-base"
                             style={Platform.OS === 'web' ? { outlineStyle: 'none' } : {}}
@@ -383,18 +393,18 @@ export default function Rooms({ navigation }) {
                 <ScrollView
                     className="flex-1 px-5"
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 20, paddingTop: 10 }}
+                    contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 85 : 76, paddingTop: 10 }}
                 >
 
                     {loading ? (
                         <View className="h-60 justify-center items-center">
                             <StayLoader />
-                            <Text className="text-gray-400 mt-4">Loading rooms...</Text>
+                            <Text className="text-gray-400 mt-4">{t('rooms.loadingRooms')}</Text>
                         </View>
                     ) : filteredRooms.length === 0 ? (
                         <View className="items-center mt-20">
                             <Ionicons name="bed-outline" size={64} color={COLORS.gray300} />
-                            <Text className="text-gray-500 text-lg mt-4 font-medium">No rooms found</Text>
+                            <Text className="text-gray-500 text-lg mt-4 font-medium">{t('rooms.noRoomsFound')}</Text>
                         </View>
                     ) : (
                         filteredRooms.map((room) => {
@@ -422,8 +432,12 @@ export default function Rooms({ navigation }) {
                         fetchHostels();
                         setDrawerOpen(true);
                     }}
-                    className="absolute bottom-24 right-6 w-14 h-14 rounded-full items-center justify-center shadow-2xl z-20"
-                    style={{ backgroundColor: theme.primary, elevation: 5 }}
+                    className="absolute right-6 w-14 h-14 rounded-full items-center justify-center shadow-2xl z-20"
+                    style={{
+                        backgroundColor: theme.primary,
+                        elevation: 5,
+                        bottom: Platform.OS === 'ios' ? 140 : 160
+                    }}
                     activeOpacity={0.9}
                 >
                     <Ionicons name="add" size={32} color={COLORS.white} />
@@ -446,6 +460,9 @@ export default function Rooms({ navigation }) {
                 room={selectedRoom}
                 theme={theme}
             />
+
+            {/* MODERN BOTTOM NAVIGATION */}
+            <BottomTabNavigator navigation={navigation} activeRoute="Rooms" />
         </View>
     );
 
@@ -756,5 +773,6 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.bold,
         color: COLORS.gray600,
     },
-});
 
+
+});
